@@ -6,11 +6,22 @@ interface Message {
   sender: "user" | "ai";
 }
 
+export interface PlaceInfo {
+  name: string;
+  category: string;
+  address: string;
+  lat: number;
+  lng: number;
+  is_registered: boolean;
+  description: string;
+}
+
 interface ChatState {
   message: Message[];
   inputText: string;
   isLoading: boolean;
   showMap: boolean;
+  place: PlaceInfo[];
 }
 
 const initialState: ChatState = {
@@ -24,6 +35,7 @@ const initialState: ChatState = {
   inputText: "",
   isLoading: false,
   showMap: false,
+  place: [],
 };
 
 export const chatSlice = createSlice({
@@ -42,10 +54,13 @@ export const chatSlice = createSlice({
     addMessage: (state, action: PayloadAction<Message>) => {
       state.message.push(action.payload);
     },
+    setPlaces: (state, action: PayloadAction<PlaceInfo[]>) => {
+      state.place = action.payload;
+    },
   },
 });
 
-export const { setInputText, setIsLoading, setShowMap, addMessage } =
+export const { setInputText, setIsLoading, setShowMap, addMessage, setPlaces } =
   chatSlice.actions;
 
 export default chatSlice.reducer;

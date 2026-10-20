@@ -9,6 +9,7 @@ import chatReducer, {
   addMessage,
   setInputText,
   setIsLoading,
+  setPlaces,
   setShowMap,
 } from "@/store/chatSlice";
 import { AppDispatch, RootState } from "@/store/store";
@@ -19,7 +20,7 @@ import { configureStore } from "@reduxjs/toolkit";
 export default function Chat() {
   const dispatch = useDispatch<AppDispatch>();
 
-  const { message, inputText, isLoading, showMap } = useSelector(
+  const { message, inputText, isLoading, showMap, place } = useSelector(
     (state: RootState) => state.chat,
   );
 
@@ -33,10 +34,10 @@ export default function Chat() {
     if (!inputText.trim()) return;
 
     const userQuery = inputText;
-    const uniqueId = Temporal.Now.instant().epochMilliseconds;
+    const userMsgId = Temporal.Now.instant().epochMilliseconds;
     const newUserMessage = {
       //id: Date.now(),
-      id: uniqueId,
+      id: userMsgId,
       text: userQuery,
       sender: "user" as const,
     };
@@ -62,24 +63,32 @@ export default function Chat() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ message: userQuery }),
+        body: JSON.stringify({ messages: userQuery }),
       });
       if (!response.ok) {
         throw new Error("서버 에러가 발생했습니다");
       }
       const data = await response.json();
+      const aiMsgId = Temporal.Now.instant().epochMilliseconds;
       dispatch(
         addMessage({
-          id: uniqueId,
+          id: aiMsgId,
           text: data.reply,
           sender: "ai",
         }),
       );
+      if (typeof data.show_map === "boolean") {
+        dispatch(setShowMap(data.show_map || isLocationQuery));
+      }
+      if (Array.isArray(data.places)) {
+        dispatch(setPlaces(data.places));
+      }
     } catch (error) {
       console.error("통신 에러", error);
+      const errorMsgId = Temporal.Now.instant().epochMilliseconds;
       dispatch(
         addMessage({
-          id: uniqueId,
+          id: errorMsgId,
           text: "백앤드 서버에 연결할 수 없습니다(파이썬 서버(8000)켜져 있는지 확인 바랍니다.",
           sender: "ai",
         }),
@@ -192,24 +201,93 @@ export default function Chat() {
 
             {/* 2) 다음맵(카카오맵) 연동 영역 (맛집/학원 등 장소 검색 질문일 때만 화면에 나타남) */}
             {showMap && (
-              <div className="w-full sm:w-1/2 h-64 sm:h-full bg-slate-200 relative flex flex-col items-center justify-center p-6 text-center border-t sm:border-t-0 sm:border-l border-slate-200 animate-fadeIn">
-                <div className="absolute inset-0 bg-slate-100 flex flex-col items-center justify-center p-6">
-                  <div className="text-5xl mb-3">📍</div>
-                  <h3 className="text-lg font-bold text-slate-700">
-                    다음맵(카카오맵) 연동 구역
-                  </h3>
-                  <p className="text-sm text-slate-500 mt-1 max-w-sm">
-                    맛집이나 학원 검색 결과에 맞춰 등록된 업체(기본 핀)와 미등록
-                    업체(커스텀 아이콘)가 지도상에 마커로 표시됩니다.
-                  </p>
-
-                  {/* 지도를 강제로 닫고 일반 채팅 화면으로 돌아가기 버튼 */}
+              <div className="w-full sm:w-1/2 h-80 sm:h-full bg-slate-100 relative flex flex-col p-6 border-t sm:border-t-0 sm:border-l border-slate-200 overflow-y-auto">
+                {/* 상단 지도 헤더 및 닫기 버튼 */}
+                <div className="flex justify-between items-center mb-4">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-2xl">🗺️</span>
+                    <h3 className="text-base font-bold text-slate-800">
+                      다음맵(카카오맵) 장소 마커 목록
+                    </h3>
+                  </div>
                   <button
                     onClick={() => dispatch(setShowMap(false))}
-                    className="mt-5 bg-slate-700 hover:bg-slate-800 text-white px-4 py-2 rounded-xl text-xs font-medium transition shadow cursor-pointer"
+                    className="bg-slate-700 hover:bg-slate-800 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition shadow cursor-pointer"
                   >
-                    지도 닫기 (채팅만 보기)
+                    지도 닫기
                   </button>
+                </div>
+                <div className="flex space-x-4 mb-4 p-3 bg-white rounded-xl border border-slate-200 text-xs text-slate-600 shadow-sm">
+                  <div className="flex items-center space-x-1.5">
+                    <span className="text-base">🔵</span>
+                    <span className="font-semibold text-blue-700">
+                      다음맵 등록 업체 (공식 핀)
+                    </span>
+                  </div>
+                  <div className="flex items-center space-x-1.5">
+                    <span className="text-base"></span>
+                    <span className="font-semibold text-orange-600">
+                      미등록/AI 추천 업체 (커스텀 아이콘)
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex-1 space-y-3">
+                  {place.length > 0 ? (
+                    place.map((item, index) => (
+                      <div
+                        key={index}
+                        className="p-4 bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition flex items-start space-x-3 text-left"
+                      >
+                        {/* 등록 상태 아이콘 */}
+                        <div
+                          className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 text-lg shadow-sm ${
+                            item.is_registered
+                              ? "bg-blue-100 text-blue-600 border border-blue-300"
+                              : "bg-orange-100 text-orange-600 border border-orange-300"
+                          }`}
+                        >
+                          {item.is_registered ? "🔵" : "🟠"}
+                        </div>
+
+                        {/* 장소 정보 */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-2">
+                            <h4 className="font-bold text-slate-800 text-sm">
+                              {item.name}
+                            </h4>
+
+                            <span
+                              className={`text-[11px] px-2 py-0.5 rounded-full font-semibold shrink-0 ${
+                                item.is_registered
+                                  ? "bg-blue-50 text-blue-600"
+                                  : "bg-orange-50 text-orange-600"
+                              }`}
+                            >
+                              {item.is_registered
+                                ? "다음맵 공식 등록"
+                                : "미등록 커스텀"}
+                            </span>
+                          </div>
+
+                          <p className="text-xs text-slate-500 mt-1">
+                            📍 {item.address} ({item.category})
+                          </p>
+
+                          <p className="text-xs text-slate-700 mt-1.5 bg-slate-50 p-2 rounded-lg">
+                            {item.description}
+                          </p>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="h-full flex flex-col items-center justify-center text-center text-slate-400 py-10">
+                      <div className="text-4xl mb-2">📍</div>
+                      <p className="text-sm">
+                        AI가 장소 좌표를 분석 중이거나 표시할 장소가 없습니다.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

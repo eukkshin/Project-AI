@@ -1,0 +1,29 @@
+[1mdiff --git a/.gitignore b/.gitignore[m
+[1mindex 5e5e4d8..90fd761 100644[m
+[1m--- a/.gitignore[m
+[1m+++ b/.gitignore[m
+[36m@@ -1,8 +1,17 @@[m
+[31m-node_modules/[m
+[31m-.next/[m
+[32m+[m[32m# Environment[m
+ .env[m
+ .env.*[m
+[31m-**/.env[m
+[31m-**/.env.*[m
+ !.env.example[m
+[31m-!**/.env.example[m
+\ No newline at end of file[m
+[32m+[m
+[32m+[m[32m# Dependencies[m
+[32m+[m[32mnode_modules/[m
+[32m+[m
+[32m+[m[32m# Next.js[m
+[32m+[m[32m.next/[m
+[32m+[m[32mout/[m
+[32m+[m[32mdist/[m
+[32m+[m[32mbuild/[m
+[32m+[m
+[32m+[m[32m# IDE[m
+[32m+[m[32m.idea/[m
+[32m+[m[32m.vscode/[m
+\ No newline at end of file[m
