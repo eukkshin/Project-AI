@@ -1,0 +1,17 @@
+# Environment
+.env
+.env.*
+!.env.example
+
+# Dependencies
+node_modules/
+
+# Next.js
+.next/
+out/
+dist/
+build/
+
+# IDE
+.idea/
+.vscode/
