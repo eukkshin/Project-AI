@@ -1,66 +1,199 @@
+import { placeKey } from "@/lib/types";
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
-interface Message {
-  id: number;
-  text: string;
-  sender: "user" | "ai";
-}
+import type {
+  ChatMessage,
+  ChatResponse,
+  ChatSession,
+  MobileView,
+  PlaceInfo,
+} from "@/lib/types";
+import type { StoredState } from "@/lib/storage";
 
-export interface PlaceInfo {
-  name: string;
-  category: string;
-  address: string;
-  lat: number;
-  lng: number;
-  is_registered: boolean;
-  description: string;
-}
+const createSession = (): ChatSession => ({
+  id: crypto.randomUUID(),
+  title: "새 대화",
+  messages: [],
+  places: [],
+  showMap: false,
+  suggestedQuestions: [],
+  updatedAt: Date.now(),
+});
 
 interface ChatState {
-  message: Message[];
+  sessions: ChatSession[];
+  activeSessionId: string | null;
+  selectedDistrict: string;
   inputText: string;
   isLoading: boolean;
-  showMap: boolean;
-  place: PlaceInfo[];
+  error: string | null;
+  selectedPlaceKey: string | null;
+  favorites: PlaceInfo[];
+  mobileView: MobileView;
+  saveHistory: boolean;
+  hydrated: boolean;
 }
 
 const initialState: ChatState = {
-  message: [
-    {
-      id: 1,
-      text: "안녕하세요! 노원구 맛집이나 학원을 물어보세요. AI 어시스턴트입니다!",
-      sender: "ai",
-    },
-  ],
+  sessions: [],
+  activeSessionId: null,
+  selectedDistrict: "노원구",
   inputText: "",
   isLoading: false,
-  showMap: false,
-  place: [],
+  error: null,
+  selectedPlaceKey: null,
+  favorites: [],
+  mobileView: "chat",
+  saveHistory: false,
+  hydrated: false,
 };
 
-export const chatSlice = createSlice({
+const slice = createSlice({
   name: "chat",
   initialState,
   reducers: {
-    setInputText: (state, action: PayloadAction<string>) => {
+    hydrate(state, action: PayloadAction<StoredState | null>) {
+      const saved = action.payload;
+      if (saved) {
+        state.selectedDistrict = saved.district;
+        state.favorites = saved.favorites;
+        state.saveHistory = saved.saveHistory;
+        state.sessions = saved.sessions;
+      }
+      if (state.sessions.length === 0) state.sessions = [createSession()];
+      state.activeSessionId = state.sessions[0].id;
+      state.hydrated = true;
+    },
+    newSession(state) {
+      const empty = state.sessions.find((s) => s.messages.length === 0);
+      const session = empty ?? createSession();
+      if (!empty) state.sessions.unshift(session);
+      state.activeSessionId = session.id;
+      state.sessions = state.sessions.slice(0, 30);
+      state.error = null;
+      state.isLoading = false;
+      state.inputText = "";
+      state.selectedPlaceKey = null;
+      state.mobileView = "chat";
+    },
+    selectSession(state, action: PayloadAction<string>) {
+      if (!state.sessions.some((s) => s.id === action.payload)) return;
+      state.activeSessionId = action.payload;
+      state.error = null;
+      state.isLoading = false;
+      state.inputText = "";
+      state.selectedPlaceKey = null;
+      state.mobileView = "chat";
+    },
+    deleteSession(state, action: PayloadAction<string>) {
+      state.sessions = state.sessions.filter((s) => s.id !== action.payload);
+      if (!state.sessions.length) state.sessions = [createSession()];
+      if (state.activeSessionId === action.payload)
+        state.activeSessionId = state.sessions[0].id;
+      state.error = null;
+      state.isLoading = false;
+      state.selectedPlaceKey = null;
+    },
+    setDistrict(state, action: PayloadAction<string>) {
+      state.selectedDistrict = action.payload;
+    },
+    setInputText(state, action: PayloadAction<string>) {
       state.inputText = action.payload;
     },
-    setIsLoading: (state, action: PayloadAction<boolean>) => {
+    setLoading(state, action: PayloadAction<boolean>) {
       state.isLoading = action.payload;
     },
-    setShowMap: (state, action: PayloadAction<boolean>) => {
-      state.showMap = action.payload;
+    setError(state, action: PayloadAction<string | null>) {
+      state.error = action.payload;
     },
-    addMessage: (state, action: PayloadAction<Message>) => {
-      state.message.push(action.payload);
+    addMessage(
+      state,
+      action: PayloadAction<{ sessionId: string; message: ChatMessage }>,
+    ) {
+      const session = state.sessions.find(
+        (s) => s.id === action.payload.sessionId,
+      );
+      if (!session) return;
+      session.messages.push(action.payload.message);
+      if (action.payload.message.sender === "user") {
+        session.places = [];
+        session.showMap = false;
+        session.suggestedQuestions = [];
+        state.selectedPlaceKey = null;
+      }
+      if (
+        session.title === "새 대화" &&
+        action.payload.message.sender === "user"
+      )
+        session.title =
+          action.payload.message.text.slice(0, 26).trim() || "새 대화";
+      session.updatedAt = Date.now();
     },
-    setPlaces: (state, action: PayloadAction<PlaceInfo[]>) => {
-      state.place = action.payload;
+    applyResponse(
+      state,
+      action: PayloadAction<{ sessionId: string; response: ChatResponse }>,
+    ) {
+      const session = state.sessions.find(
+        (s) => s.id === action.payload.sessionId,
+      );
+      if (!session) return;
+      const response = action.payload.response;
+      session.messages.push({
+        id: crypto.randomUUID(),
+        sender: "assistant",
+        text: response.reply,
+        createdAt: Date.now(),
+      });
+      session.places = response.places;
+      session.showMap = response.show_map && response.places.length > 0;
+      session.suggestedQuestions = response.suggested_questions;
+      session.updatedAt = Date.now();
+      state.selectedPlaceKey = response.places.length
+        ? placeKey(response.places[0])
+        : null;
+      state.mobileView = "chat";
+    },
+    choosePlace(state, action: PayloadAction<string>) {
+      state.selectedPlaceKey = action.payload;
+    },
+    setMobileView(state, action: PayloadAction<MobileView>) {
+      state.mobileView = action.payload;
+    },
+    toggleFavorite(state, action: PayloadAction<PlaceInfo>) {
+      const key = placeKey(action.payload);
+      const i = state.favorites.findIndex((p) => placeKey(p) === key);
+      if (i === -1) state.favorites.unshift(action.payload);
+      else state.favorites.splice(i, 1);
+    },
+    setSaveHistory(state, action: PayloadAction<boolean>) {
+      state.saveHistory = action.payload;
+    },
+    clearAllHistory(state) {
+      state.sessions = [createSession()];
+      state.activeSessionId = state.sessions[0].id;
+      state.error = null;
+      state.isLoading = false;
+      state.inputText = "";
+      state.selectedPlaceKey = null;
     },
   },
 });
 
-export const { setInputText, setIsLoading, setShowMap, addMessage, setPlaces } =
-  chatSlice.actions;
-
-export default chatSlice.reducer;
+export const {
+  hydrate,
+  newSession,
+  selectSession,
+  deleteSession,
+  setDistrict,
+  setInputText,
+  setLoading,
+  setError,
+  addMessage,
+  applyResponse,
+  choosePlace,
+  setMobileView,
+  toggleFavorite,
+  setSaveHistory,
+  clearAllHistory,
+} = slice.actions;
+export default slice.reducer;

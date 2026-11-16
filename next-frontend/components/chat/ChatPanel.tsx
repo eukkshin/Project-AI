@@ -1,0 +1,272 @@
+"use client";
+
+import {
+  ArrowRight,
+  Bot,
+  Check,
+  Coffee,
+  Copy,
+  FerrisWheel,
+  GraduationCap,
+  Map,
+  MapPin,
+  MessageSquare,
+  RotateCcw,
+  Sparkles,
+  Square,
+  Utensils,
+} from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import ReactMarkdown from "react-markdown";
+
+import ChatComposer from "@/components/chat/ChatComposer";
+import PlaceCard from "@/components/places/PlaceCard";
+import { useAppDispatch, useAppSelector } from "@/hooks/redux";
+import { placeKey } from "@/lib/types";
+import { choosePlace, setInputText, setMobileView } from "@/store/chatSlice";
+
+import type { ChatSession, PlaceInfo } from "@/lib/types";
+const shortcuts = [
+  { label: "맛집", prompt: "지금 가기 좋은 맛집 추천해줘", Icon: Utensils },
+  { label: "카페", prompt: "조용하고 분위기 좋은 카페 찾아줘", Icon: Coffee },
+  { label: "학원", prompt: "근처 학원 찾아줘", Icon: GraduationCap },
+  {
+    label: "놀거리",
+    prompt: "주말에 가볼 만한 곳 추천해줘",
+    Icon: FerrisWheel,
+  },
+];
+
+interface Props {
+  session?: ChatSession;
+  send: (query: string) => void;
+  retry: () => void;
+  onCancel: () => void;
+}
+
+export default function ChatPanel({ session, send, retry, onCancel }: Props) {
+  const dispatch = useAppDispatch();
+  const {
+    inputText,
+    isLoading,
+    error,
+    selectedDistrict,
+    favorites,
+    selectedPlaceKey,
+  } = useAppSelector((state) => state.chat);
+  const messagesEnd = useRef<HTMLDivElement>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  async function copyText(id: string, value: string) {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopiedId(id);
+    } catch {
+      setCopiedId(null);
+    }
+  }
+  const hasMessages = (session?.messages.length ?? 0) > 0;
+  useEffect(() => {
+    messagesEnd.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [session?.messages.length, isLoading, error]);
+
+  return (
+    <main className="chat-panel" aria-label="AI 채팅">
+      <div className="chat-scroll" aria-live="polite">
+        {!hasMessages && (
+          <div className="welcome">
+            <div className="welcome-icon">
+              <Sparkles size={24} />
+            </div>
+            <span className="eyebrow">YOUR LOCAL AI COMPANION</span>
+            <h1>오늘은 어디로 가볼까요?</h1>
+            <p>
+              <strong>{selectedDistrict}</strong>의 맛집부터 카페, 학원,
+              놀거리까지
+              <br className="desktop-break" /> 필요한 정보를 편하게 물어보세요.
+            </p>
+            <div className="shortcut-grid" aria-label="빠른 질문">
+              {shortcuts.map(({ label, prompt, Icon }) => (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={() => send(prompt)}
+                  disabled={isLoading}
+                >
+                  <Icon size={18} />
+                  {label}
+                  <ArrowRight size={14} />
+                </button>
+              ))}
+            </div>
+            <div className="welcome-card">
+              <MapPin size={16} />
+              <span>
+                현재 탐색 지역 <strong>{selectedDistrict}</strong>
+              </span>
+              <span className="welcome-card-note">상단에서 변경 가능</span>
+            </div>
+          </div>
+        )}
+        {hasMessages && (
+          <div className="conversation">
+            <div className="conversation-label">
+              <span className="status-dot" /> 동네 AI와 대화 중
+            </div>
+            {session?.messages.map((msg) => (
+              <div
+                key={msg.id}
+                className={`message-row ${msg.sender === "user" ? "mine" : "theirs"}`}
+              >
+                {msg.sender === "assistant" && (
+                  <div className="avatar">
+                    <Bot size={18} />
+                  </div>
+                )}
+                <div className="message-body">
+                  <div
+                    className={`bubble ${msg.sender === "user" ? "user-bubble" : "ai-bubble"}`}
+                  >
+                    {msg.sender === "assistant" ? (
+                      <ReactMarkdown
+                        skipHtml
+                        components={{
+                          a: ({ href, children }) => {
+                            const valid =
+                              typeof href === "string" &&
+                              /^https?:\/\//i.test(href);
+                            return valid ? (
+                              <a
+                                href={href}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                {children}
+                              </a>
+                            ) : (
+                              <span>{children}</span>
+                            );
+                          },
+                        }}
+                      >
+                        {msg.text}
+                      </ReactMarkdown>
+                    ) : (
+                      <p>{msg.text}</p>
+                    )}
+                  </div>
+                  <div className="message-meta">
+                    <time>
+                      {new Date(msg.createdAt).toLocaleTimeString("ko-KR", {
+                        hour: "numeric",
+                        minute: "2-digit",
+                      })}
+                    </time>
+                    {msg.sender === "assistant" && (
+                      <button
+                        className="message-copy"
+                        type="button"
+                        aria-label="AI 답변 복사"
+                        title="답변 복사"
+                        onClick={() => void copyText(msg.id, msg.text)}
+                      >
+                        {copiedId === msg.id ? (
+                          <Check size={14} />
+                        ) : (
+                          <Copy size={14} />
+                        )}
+                        <span>{copiedId === msg.id ? "복사됨" : "복사"}</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+            {Boolean(session?.places.length) && (
+              <div className="chat-results">
+                <div className="results-head">
+                  <div>
+                    <span className="eyebrow">FOUND FOR YOU</span>
+                    <h2>
+                      검색된 장소 <span>{session?.places.length}곳</span>
+                    </h2>
+                  </div>
+                  <button
+                    onClick={() => dispatch(setMobileView("map"))}
+                    className="text-link mobile-map-link"
+                  >
+                    <Map size={16} /> 지도 보기
+                  </button>
+                </div>
+                <div className="place-cards">
+                  {session?.places.map((place: PlaceInfo) => (
+                    <PlaceCard
+                      key={placeKey(place)}
+                      place={place}
+                      compact={false}
+                      selected={placeKey(place) === selectedPlaceKey}
+                      bookmarked={favorites.some(
+                        (p) => placeKey(p) === placeKey(place),
+                      )}
+                      onSelect={() => {
+                        dispatch(choosePlace(placeKey(place)));
+                        dispatch(setMobileView("map"));
+                      }}
+                    />
+                  ))}
+                </div>
+                <p className="disclaimer">
+                  장소는 검색 API 결과입니다. 실제 영업 여부와 상세 정보는
+                  업체에 확인해 주세요.
+                </p>
+              </div>
+            )}
+            {Boolean(session?.suggestedQuestions.length) && (
+              <div className="follow-up-chips">
+                {session?.suggestedQuestions.map((q) => (
+                  <button key={q} onClick={() => send(q)} disabled={isLoading}>
+                    {q} <ArrowRight size={13} />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+        {isLoading && (
+          <div className="message-row theirs loading-row">
+            <div className="avatar">
+              <Bot size={18} />
+            </div>
+            <div className="ai-bubble bubble thinking">
+              <span className="thinking-dots">
+                <i />
+                <i />
+                <i />
+              </span>{" "}
+              질문을 분석하고 있어요{" "}
+              <button type="button" className="cancel-chat" onClick={onCancel}>
+                <Square size={12} /> 중지
+              </button>
+            </div>
+          </div>
+        )}
+        {error && (
+          <div className="chat-error" role="alert">
+            <MessageSquare size={17} />
+            <span>{error}</span>
+            <button type="button" onClick={retry}>
+              <RotateCcw size={15} /> 다시 시도
+            </button>
+          </div>
+        )}
+        <div ref={messagesEnd} />
+      </div>
+      <ChatComposer
+        value={inputText}
+        district={selectedDistrict}
+        disabled={isLoading}
+        onChange={(value) => dispatch(setInputText(value))}
+        onSend={() => send(inputText)}
+      />
+    </main>
+  );
+}
