@@ -2,11 +2,10 @@
 
 import { useEffect } from "react";
 import { Provider } from "react-redux";
-
 import { ThemeProvider } from "@/components/common/ThemeProvider";
-import { loadStoredState, saveStoredState } from "@/lib/storage";
 import { hydrate } from "@/store/chatSlice";
 import { store } from "@/store/store";
+import { loadStoredState, saveStoredState } from "@/lib/storage";
 
 function PersistenceBridge({ children }: { children: React.ReactNode }) {
   useEffect(() => {
@@ -16,18 +15,8 @@ function PersistenceBridge({ children }: { children: React.ReactNode }) {
       const state = store.getState().chat;
       if (!state.hydrated) return;
       saveStoredState({
-        district: state.selectedDistrict,
-        saveHistory: state.saveHistory,
-        sessions: state.saveHistory
-          ? state.sessions
-              .slice(0, 30)
-              .map((s) => ({
-                ...s,
-                places: [],
-                showMap: false,
-                suggestedQuestions: [],
-              }))
-          : [],
+        district: state.selectedDistrict, saveHistory: state.saveHistory,
+        sessions: state.saveHistory ? state.sessions.slice(0, 30).map(s => ({ ...s, places: [], showMap: false, suggestedQuestions: [] })) : [],
         favorites: state.favorites.slice(0, 100),
       });
     };
@@ -35,23 +24,11 @@ function PersistenceBridge({ children }: { children: React.ReactNode }) {
       if (timer) clearTimeout(timer);
       timer = setTimeout(persist, 250);
     });
-    return () => {
-      unsubscribe();
-      if (timer) {
-        clearTimeout(timer);
-        persist();
-      }
-    };
+    return () => { unsubscribe(); if (timer) { clearTimeout(timer); persist(); } };
   }, []);
   return <>{children}</>;
 }
 
 export default function Providers({ children }: { children: React.ReactNode }) {
-  return (
-    <Provider store={store}>
-      <ThemeProvider>
-        <PersistenceBridge>{children}</PersistenceBridge>
-      </ThemeProvider>
-    </Provider>
-  );
+  return <Provider store={store}><ThemeProvider><PersistenceBridge>{children}</PersistenceBridge></ThemeProvider></Provider>;
 }

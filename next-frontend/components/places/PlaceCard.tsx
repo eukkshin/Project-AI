@@ -1,20 +1,11 @@
 "use client";
 
-import {
-  ArrowUpRight,
-  Bookmark,
-  CalendarDays,
-  CheckCircle2,
-  MapPin,
-  Phone,
-  Store,
-} from "lucide-react";
-
-import { useAppDispatch } from "@/hooks/redux";
+import { ArrowUpRight, Bookmark, MapPin, Phone, Store, CheckCircle2, CalendarDays } from "lucide-react";
+import type { PlaceInfo } from "@/lib/types";
 import { mapPlaceUrl } from "@/lib/types";
+import { useAppDispatch } from "@/hooks/redux";
 import { toggleFavorite } from "@/store/chatSlice";
 
-import type { PlaceInfo } from "@/lib/types";
 interface Props {
   place: PlaceInfo;
   compact?: boolean;
@@ -23,111 +14,21 @@ interface Props {
   onSelect?: () => void;
 }
 
-export default function PlaceCard({
-  place,
-  compact = false,
-  selected = false,
-  bookmarked,
-  onSelect,
-}: Props) {
+export default function PlaceCard({ place, compact = false, selected = false, bookmarked, onSelect }: Props) {
   const dispatch = useAppDispatch();
-  return (
-    <article
-      className={`place-card ${compact ? "place-card-compact" : ""} ${selected ? "place-card-selected" : ""}`}
-    >
-      <div className="place-topline">
-        <span className="place-icon">
-          <Store size={19} />
-        </span>
-        <button
-          type="button"
-          className={`bookmark-button ${bookmarked ? "bookmarked" : ""}`}
-          onClick={() => dispatch(toggleFavorite(place.name))}
-          aria-label={
-            bookmarked
-              ? `${place.name} 즐겨찾기 해제`
-              : `${place.name} 즐겨찾기 추가`
-          }
-          aria-pressed={bookmarked}
-        >
-          <Bookmark size={18} fill={bookmarked ? "currentColor" : "none"} />
-        </button>
-      </div>
-      {onSelect ? (
-        <button
-          type="button"
-          className="place-main"
-          onClick={onSelect}
-          title={`${place.name} 지도에서 보기`}
-        >
-          <strong>{place.name}</strong>
-          <small>{place.category || "장소"}</small>
-          <span className="place-address">
-            <MapPin size={13} />
-            {place.address}
-          </span>
-        </button>
-      ) : (
-        <div className="place-main">
-          <strong>{place.name}</strong>
-          <small>{place.category || "장소"}</small>
-          <span className="place-address">
-            <MapPin size={13} />
-            {place.address}
-          </span>
-        </div>
-      )}
-      {!compact && place.description && (
-        <p className="place-description">{place.description}</p>
-      )}
-      <div className="place-bottom">
-        {place.is_registered && (
-          <span className="registered-label">
-            <CheckCircle2 size={12} /> 자체 등록
-          </span>
-        )}
-        <a
-          href={mapPlaceUrl(place)}
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label={`${place.name} 카카오 지도에서 상세 보기`}
-        >
-          상세 보기 <ArrowUpRight size={15} />
-        </a>
-      </div>
-      {!compact && (
-        <p className="place-verification">가격·영업·예약 현황은 별도 확인</p>
-      )}
-      {(place.booking_url || place.waitlist_url) && (
-        <div className="booking-actions">
-          {place.booking_url && (
-            <a
-              href={place.booking_url}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <CalendarDays size={13} /> 예약 페이지
-            </a>
-          )}
-          {place.waitlist_url && (
-            <a
-              href={place.waitlist_url}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              웨이팅 페이지
-            </a>
-          )}
-        </div>
-      )}
-      {!compact && place.phone && (
-        <a
-          className="place-phone"
-          href={`tel:${place.phone.replace(/[^\d+]/g, "")}`}
-        >
-          <Phone size={13} /> {place.phone}
-        </a>
-      )}
-    </article>
-  );
+  return <article className={`place-card ${compact ? "place-card-compact" : ""} ${selected ? "place-card-selected" : ""}`}>
+    <div className="place-topline"><span className="place-icon"><Store size={19}/></span><button type="button" className={`bookmark-button ${bookmarked ? "bookmarked" : ""}`} onClick={() => dispatch(toggleFavorite(place.name))} aria-label={bookmarked ? `${place.name} 즐겨찾기 해제` : `${place.name} 즐겨찾기 추가`} aria-pressed={bookmarked}><Bookmark size={18} fill={bookmarked ? "currentColor" : "none"}/></button></div>
+    {onSelect ? <button type="button" className="place-main" onClick={onSelect} title={`${place.name} 지도에서 보기`}>
+      <strong>{place.name}</strong><small>{place.category || "장소"}</small>
+      <span className="place-address"><MapPin size={13}/>{place.address}</span>
+    </button> : <div className="place-main"><strong>{place.name}</strong><small>{place.category || "장소"}</small><span className="place-address"><MapPin size={13}/>{place.address}</span></div>}
+    {!compact && place.description && <p className="place-description">{place.description}</p>}
+    <div className="place-bottom">
+      {place.is_registered && <span className="registered-label"><CheckCircle2 size={12}/> 자체 등록</span>}
+      <a href={mapPlaceUrl(place)} target="_blank" rel="noopener noreferrer" aria-label={`${place.name} 카카오 지도에서 상세 보기`}>상세 보기 <ArrowUpRight size={15}/></a>
+    </div>
+    {!compact && <p className="place-verification">가격·영업·예약 현황은 별도 확인</p>}
+    {(place.booking_url || place.waitlist_url) && <div className="booking-actions">{place.booking_url && <a href={place.booking_url} target="_blank" rel="noopener noreferrer"><CalendarDays size={13}/> 예약 페이지</a>}{place.waitlist_url && <a href={place.waitlist_url} target="_blank" rel="noopener noreferrer">웨이팅 페이지</a>}</div>}
+    {!compact && place.phone && <a className="place-phone" href={`tel:${place.phone.replace(/[^\d+]/g, "")}`}><Phone size={13}/> {place.phone}</a>}
+  </article>;
 }

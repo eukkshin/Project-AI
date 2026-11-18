@@ -1,3 +1,4 @@
+import { createId } from "@/lib/createId";
 import { placeKey } from "@/lib/types";
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
@@ -11,7 +12,7 @@ import type {
 import type { StoredState } from "@/lib/storage";
 
 const createSession = (): ChatSession => ({
-  id: crypto.randomUUID(),
+  id: createId(),
   title: "새 대화",
   messages: [],
   places: [],
@@ -139,7 +140,7 @@ const slice = createSlice({
       if (!session) return;
       const response = action.payload.response;
       session.messages.push({
-        id: crypto.randomUUID(),
+        id: createId(),
         sender: "assistant",
         text: response.reply,
         createdAt: Date.now(),

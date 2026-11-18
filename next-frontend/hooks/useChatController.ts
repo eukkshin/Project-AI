@@ -1,9 +1,9 @@
 "use client";
-
 import { useCallback, useEffect, useRef } from "react";
 
 import { useAppDispatch, useAppSelector } from "@/hooks/redux";
 import { postChat } from "@/lib/api";
+import { createId } from "@/lib/createId";
 import {
   addMessage,
   applyResponse,
@@ -50,7 +50,7 @@ export function useChatController() {
           addMessage({
             sessionId: activeSessionId,
             message: {
-              id: crypto.randomUUID(),
+              id: createId(),
               sender: "user",
               text: query,
               createdAt: Date.now(),

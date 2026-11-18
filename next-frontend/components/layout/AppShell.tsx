@@ -1,7 +1,8 @@
 "use client";
+
 import Image from "next/image";
-import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 
 import ChatPanel from "@/components/chat/ChatPanel";
 import SettingsDialog from "@/components/common/SettingsDialog";
@@ -18,7 +19,9 @@ import { useAppDispatch, useAppSelector } from "@/hooks/redux";
 import { useChatController } from "@/hooks/useChatController";
 import { setDistrict, setInputText, setMobileView } from "@/store/chatSlice";
 
-const paths: Record<View, string> = {
+// Cafe24 static hosting: Next.js basePath is compiled into the build.
+const BASE_PATH = "/group/three/3";
+const PATHS: Record<View, string> = {
   home: "/",
   chat: "/chat",
   explore: "/explore",
@@ -27,12 +30,31 @@ const paths: Record<View, string> = {
   guide: "/guide",
   history: "/history",
 };
+
+function viewFromPath(pathname: string | null): View {
+  let path = pathname || "/";
+  if (path === BASE_PATH || path.startsWith(`${BASE_PATH}/`)) {
+    path = path.slice(BASE_PATH.length) || "/";
+  }
+  path = path.replace(/\/+$/, "") || "/";
+  const match = (Object.keys(PATHS) as View[]).find(
+    (key) => PATHS[key] === path,
+  );
+  return match ?? "home";
+}
+
+function urlFor(view: View): string {
+  const path = PATHS[view];
+  return path === "/" ? `${BASE_PATH}/` : `${BASE_PATH}${path}/`;
+}
+
 export default function AppShell() {
   const dispatch = useAppDispatch();
-  const router = useRouter();
-  const pathname = usePathname();
-  const view = (Object.keys(paths).find((k) => paths[k as View] === pathname) ||
-    "home") as View;
+  const nextPathname = usePathname();
+  const [view, setView] = useState<View>(() => viewFromPath(nextPathname));
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
   const {
     sessions,
     activeSessionId,
@@ -40,42 +62,68 @@ export default function AppShell() {
     favorites,
     mobileView,
     hydrated,
-  } = useAppSelector((s) => s.chat);
+  } = useAppSelector((state) => state.chat);
   const { activeSession, startNew, openSession, send, retryLast, cancel } =
     useChatController();
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  function navigate(v: View) {
+
+  // Keep navigation independent of Next.js RSC requests on a static FTP host.
+  // This also keeps Redux conversations alive when switching tabs.
+  useEffect(() => {
+    const syncFromLocation = () =>
+      setView(viewFromPath(window.location.pathname));
+    syncFromLocation();
+    window.addEventListener("popstate", syncFromLocation);
+    return () => window.removeEventListener("popstate", syncFromLocation);
+  }, []);
+
+  function navigate(nextView: View) {
     setSidebarOpen(false);
-    if (v === "chat") dispatch(setMobileView("chat"));
-    router.push(paths[v]);
+    if (nextView === "chat") dispatch(setMobileView("chat"));
+
+    const target = urlFor(nextView);
+    if (window.location.pathname !== target) {
+      window.history.pushState({ ...window.history.state }, "", target);
+    }
+    setView(nextView);
+    window.scrollTo({ top: 0, behavior: "instant" });
   }
+
   function openChat(id: string) {
     openSession(id);
     navigate("chat");
   }
+
   function newChat() {
     startNew();
     navigate("chat");
   }
+
   function prompt(text: string) {
     dispatch(setInputText(text));
     navigate("chat");
   }
-  if (!hydrated)
+
+  if (!hydrated) {
     return (
       <div className="initial-loading">
         <div className="brand-mark">
-          <Image src="/brand/brand-symbol.png" alt="" width={31} height={31} />
+          <Image
+            src={`${BASE_PATH}/brand/brand-symbol.png`}
+            alt=""
+            width={31}
+            height={31}
+          />
         </div>
         <span>미식의 순간을 준비하고 있어요</span>
       </div>
     );
+  }
+
   return (
     <div className="app-shell">
       <Topbar
         district={selectedDistrict}
-        onDistrict={(d) => dispatch(setDistrict(d))}
+        onDistrict={(district) => dispatch(setDistrict(district))}
         view={view}
         onNavigate={navigate}
         onSettings={() => setSettingsOpen(true)}
@@ -103,7 +151,7 @@ export default function AppShell() {
           <>
             <ChatPanel
               session={activeSession}
-              send={(q) => void send(q)}
+              send={(question) => void send(question)}
               retry={retryLast}
               onCancel={cancel}
             />

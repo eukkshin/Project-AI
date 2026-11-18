@@ -47,22 +47,7 @@ export interface ChatSession {
   updatedAt: number;
 }
 
-export const DISTRICTS = [
-  "노원구",
-  "도봉구",
-  "강북구",
-  "중랑구",
-  "성북구",
-  "강남구",
-  "마포구",
-  "성동구",
-  "송파구",
-  "종로구",
-  "용산구",
-  "서초구",
-  "영등포구",
-  "강서구",
-] as const;
+export const DISTRICTS = ["노원구", "도봉구", "강북구", "중랑구", "성북구", "강남구", "마포구", "성동구", "송파구", "종로구", "용산구", "서초구", "영등포구", "강서구"] as const;
 
 export function placeKey(place: PlaceInfo): string {
   return place.id ? `kakao:${place.id}` : `${place.name}|${place.address}`;
@@ -72,9 +57,7 @@ export function safeHttpUrl(value: unknown): string | null {
   if (typeof value !== "string") return null;
   try {
     const url = new URL(value);
-    return url.protocol === "https:" || url.protocol === "http:"
-      ? url.href
-      : null;
+    return url.protocol === "https:" || url.protocol === "http:" ? url.href : null;
   } catch {
     return null;
   }
@@ -85,11 +68,8 @@ export function mapPlaceUrl(place: PlaceInfo): string {
   if (candidate) {
     try {
       const host = new URL(candidate).hostname.toLowerCase();
-      if (host === "map.kakao.com" || host === "place.map.kakao.com")
-        return candidate;
-    } catch {
-      /* use a safe Kakao search URL */
-    }
+      if (host === "map.kakao.com" || host === "place.map.kakao.com") return candidate;
+    } catch { /* use a safe Kakao search URL */ }
   }
   return `https://map.kakao.com/?q=${encodeURIComponent(`${place.name} ${place.address}`)}`;
 }

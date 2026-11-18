@@ -2,6 +2,8 @@
 import { BookHeart, Plus, Star, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 
+import { createId } from "@/lib/createId";
+
 interface Entry {
   id: string;
   place: string;
@@ -44,7 +46,7 @@ export default function JournalView() {
     if (!place.trim()) return;
     setItems((prev) => [
       {
-        id: crypto.randomUUID(),
+        id: createId(),
         place: place.trim().slice(0, 100),
         date: date || new Date().toISOString().slice(0, 10),
         rating,
