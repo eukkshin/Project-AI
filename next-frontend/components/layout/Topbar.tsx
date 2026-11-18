@@ -1,30 +1,26 @@
 "use client";
-
-import {
-  Bookmark,
-  Compass,
-  History,
-  House,
-  MapPin,
-  Menu,
-  Moon,
-  Settings2,
-  Sun,
-} from "lucide-react";
+import { MapPin, Menu, Moon, Settings2, Sparkles, Sun } from "lucide-react";
+import Image from "next/image";
 
 import { useTheme } from "@/components/common/ThemeProvider";
 import { DISTRICTS } from "@/lib/types";
 
-type View = "chat" | "favorites" | "history";
+export type View =
+  | "home"
+  | "chat"
+  | "explore"
+  | "collections"
+  | "journal"
+  | "guide"
+  | "history";
 interface Props {
   district: string;
   onDistrict: (district: string) => void;
   view: View;
-  onNavigate: (view: View) => void;
+  onNavigate: (v: View) => void;
   onSettings: () => void;
   onMenu: () => void;
 }
-
 export default function Topbar({
   district,
   onDistrict,
@@ -42,45 +38,57 @@ export default function Topbar({
           onClick={onMenu}
           aria-label="메뉴 열기"
         >
-          <Menu size={21} />
+          <Menu size={20} />
         </button>
-        <div className="brand-mark" aria-hidden="true">
-          <House size={20} strokeWidth={2.2} />
-        </div>
-        <div className="brand-name">
-          <strong>동네 AI</strong>
-          <span>우리 동네를 더 잘 아는 AI</span>
-        </div>
+        <button className="brand-link" onClick={() => onNavigate("home")}>
+          <span className="brand-mark">
+            <Image
+              src="/brand/brand-symbol.png"
+              alt=""
+              width={31}
+              height={31}
+              priority
+            />
+          </span>
+          <span className="brand-name">
+            <strong>{process.env.NEXT_PUBLIC_BRAND_NAME || "DINOVO"}</strong>
+            <span>PERSONAL DINING GUIDE</span>
+          </span>
+        </button>
       </div>
-      <nav className="top-nav" aria-label="상단 메뉴">
+      <nav className="top-nav" aria-label="메인 메뉴">
+        <button
+          className={view === "home" ? "active" : ""}
+          onClick={() => onNavigate("home")}
+        >
+          홈
+        </button>
         <button
           className={view === "chat" ? "active" : ""}
           onClick={() => onNavigate("chat")}
         >
-          <Compass size={17} /> 홈
+          <Sparkles size={15} /> AI 컨시어지
         </button>
         <button
-          className={view === "favorites" ? "active" : ""}
-          onClick={() => onNavigate("favorites")}
+          className={view === "explore" ? "active" : ""}
+          onClick={() => onNavigate("explore")}
         >
-          <Bookmark size={17} /> 즐겨찾기
+          식당 탐색
         </button>
         <button
-          className={view === "history" ? "active" : ""}
-          onClick={() => onNavigate("history")}
+          className={view === "guide" ? "active" : ""}
+          onClick={() => onNavigate("guide")}
         >
-          <History size={17} /> 대화 기록
+          미식 가이드
         </button>
       </nav>
       <div className="top-actions">
         <label className="district-select">
           <MapPin size={16} />
-          <span className="sr-only">지역 선택</span>
+          <span className="sr-only">검색 지역</span>
           <select value={district} onChange={(e) => onDistrict(e.target.value)}>
-            {DISTRICTS.map((item) => (
-              <option key={item} value={item}>
-                {item}
-              </option>
+            {DISTRICTS.map((d) => (
+              <option key={d}>{d}</option>
             ))}
           </select>
         </label>
@@ -90,16 +98,15 @@ export default function Topbar({
           aria-label={
             resolved === "light" ? "다크 모드로 변경" : "라이트 모드로 변경"
           }
-          title="테마 전환"
         >
-          {resolved === "light" ? <Moon size={19} /> : <Sun size={19} />}
+          {resolved === "light" ? <Moon size={18} /> : <Sun size={18} />}
         </button>
         <button
           className="icon-button top-settings"
           onClick={onSettings}
-          aria-label="환경 설정"
+          aria-label="설정"
         >
-          <Settings2 size={19} />
+          <Settings2 size={18} />
         </button>
       </div>
     </header>

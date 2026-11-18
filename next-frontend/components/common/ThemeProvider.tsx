@@ -12,7 +12,7 @@ interface ThemeContextValue {
   toggle: () => void;
 }
 const ThemeContext = createContext<ThemeContextValue | null>(null);
-const THEME_KEY = "dongne-ai-theme";
+const THEME_KEY = "dinovo-theme";
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [choice, setChoice] = useState<ThemeChoice>("system");

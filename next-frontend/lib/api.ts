@@ -48,6 +48,8 @@ function parsePlace(input: unknown): PlaceInfo | null {
     phone: String(p.phone ?? ""),
     place_url: safeHttpUrl(p.place_url) ?? "",
     source: String(p.source ?? ""),
+    booking_url: safeHttpUrl(p.booking_url) ?? "",
+    waitlist_url: safeHttpUrl(p.waitlist_url) ?? "",
   };
 }
 
@@ -60,7 +62,7 @@ function parseChatResponse(data: unknown): ChatResponse {
   const places = Array.isArray(d.places)
     ? d.places
         .map(parsePlace)
-        .filter((p): p is PlaceInfo => p !== null)
+        .filter((p: PlaceInfo | null): p is PlaceInfo => p !== null)
         .slice(0, 10)
     : [];
   return {
@@ -69,7 +71,10 @@ function parseChatResponse(data: unknown): ChatResponse {
     places,
     suggested_questions: Array.isArray(d.suggested_questions)
       ? d.suggested_questions
-          .filter((q): q is string => typeof q === "string" && q.length <= 100)
+          .filter(
+            (q: unknown): q is string =>
+              typeof q === "string" && q.length <= 100,
+          )
           .slice(0, 3)
       : [],
   };
@@ -89,10 +94,12 @@ export async function postChat(
       body: JSON.stringify({
         message,
         district,
-        history: history.slice(-12).map((item) => ({
-          role: item.sender,
-          content: item.text.slice(0, 2000),
-        })),
+        history: history
+          .slice(-10)
+          .map((item) => ({
+            role: item.sender,
+            content: item.text.slice(0, 2000),
+          })),
       }),
       signal,
       cache: "no-store",
@@ -130,4 +137,70 @@ export async function postChat(
     if (error instanceof ApiError) throw error;
     throw new ApiError("응답을 해석하지 못했습니다.");
   }
+}
+
+export interface SearchResponse {
+  query: string;
+  district: string;
+  places: PlaceInfo[];
+  source: string;
+}
+
+export async function searchRestaurants(
+  args: {
+    query: string;
+    district: string;
+    category: string;
+    lat?: number;
+    lng?: number;
+    radius?: number;
+    sort?: string;
+  },
+  signal: AbortSignal,
+): Promise<SearchResponse> {
+  const params = new URLSearchParams({
+    query: args.query,
+    district: args.district,
+    category: args.category,
+  });
+  if (args.lat !== undefined && args.lng !== undefined) {
+    params.set("lat", String(args.lat));
+    params.set("lng", String(args.lng));
+    params.set("radius", String(args.radius ?? 5000));
+    params.set("sort", args.sort ?? "distance");
+  }
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}/api/restaurants/search?${params}`, {
+      signal,
+      cache: "no-store",
+    });
+  } catch (error) {
+    if (signal.aborted) throw error;
+    throw new ApiError(
+      "검색 서버에 연결할 수 없습니다. FastAPI 실행 여부를 확인해 주세요.",
+    );
+  }
+  if (!response.ok) {
+    let detail = "";
+    try {
+      const data = await response.json();
+      if (typeof data?.detail === "string") detail = data.detail;
+    } catch {}
+    throw new ApiError(
+      detail || `검색 오류 (${response.status})`,
+      response.status,
+    );
+  }
+  const data = await response.json();
+  return {
+    query: args.query,
+    district: args.district,
+    source: "kakao",
+    places: Array.isArray(data.places)
+      ? data.places
+          .map(parsePlace)
+          .filter((p: PlaceInfo | null): p is PlaceInfo => p !== null)
+      : [],
+  };
 }

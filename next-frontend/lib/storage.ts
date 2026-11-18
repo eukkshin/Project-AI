@@ -1,12 +1,12 @@
-import type { ChatSession, PlaceInfo } from "@/lib/types";
+import type { ChatSession, SavedRestaurant } from "@/lib/types";
 import { DISTRICTS } from "@/lib/types";
 
-export const STORAGE_KEY = "dongne-ai-v1";
+export const STORAGE_KEY = "dinovo-dining-v1";
 export interface StoredState {
   district: string;
   saveHistory: boolean;
   sessions: ChatSession[];
-  favorites: PlaceInfo[];
+  favorites: SavedRestaurant[];
 }
 
 export function loadStoredState(): StoredState | null {
@@ -24,9 +24,7 @@ export function loadStoredState(): StoredState | null {
               v &&
               typeof v === "object" &&
               typeof v.name === "string" &&
-              typeof v.address === "string" &&
-              Number.isFinite(v.lat) &&
-              Number.isFinite(v.lng),
+              v.name.trim().length > 0,
           )
           .slice(0, 100)
       : [];
@@ -49,12 +47,10 @@ export function loadStoredState(): StoredState | null {
                   (m.sender === "user" || m.sender === "assistant"),
               )
               .slice(-80),
-            places: Array.isArray(s.places) ? s.places.slice(0, 10) : [],
-            showMap: s.showMap === true,
+            places: [], // 외부 장소 API 결과는 로컬 저장소에 축적하지 않음
+            showMap: false,
             updatedAt: Number(s.updatedAt) || Date.now(),
-            suggestedQuestions: Array.isArray(s.suggestedQuestions)
-              ? s.suggestedQuestions.slice(0, 3)
-              : [],
+            suggestedQuestions: [],
           }))
       : [];
     return {
@@ -64,7 +60,10 @@ export function loadStoredState(): StoredState | null {
           ? p.district
           : "노원구",
       saveHistory: p.saveHistory === true,
-      favorites: favorites as PlaceInfo[],
+      favorites: favorites.map((v: SavedRestaurant) => ({
+        name: v.name.slice(0, 90),
+        createdAt: Number(v.createdAt) || Date.now(),
+      })),
       sessions: p.saveHistory === true ? sessions : [],
     };
   } catch {

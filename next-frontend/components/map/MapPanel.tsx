@@ -48,7 +48,7 @@ export default function MapPanel({ session }: { session?: ChatSession }) {
             <h3>
               검색 결과 <span>{places.length}곳</span>
             </h3>
-            <span>카카오 장소 검색 기반</span>
+            <span>카카오 장소 검색 결과</span>
           </div>
           <div className="map-list">
             {places.map((p) => (
@@ -57,9 +57,7 @@ export default function MapPanel({ session }: { session?: ChatSession }) {
                   place={p}
                   compact
                   selected={placeKey(p) === selectedPlaceKey}
-                  bookmarked={favorites.some(
-                    (f) => placeKey(f) === placeKey(p),
-                  )}
+                  bookmarked={favorites.some((f) => f.name === p.name)}
                   onSelect={() => dispatch(choosePlace(placeKey(p)))}
                 />
               </div>
@@ -75,7 +73,7 @@ export default function MapPanel({ session }: { session?: ChatSession }) {
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                길찾기 / 상세 <ExternalLink size={14} />
+                카카오맵 상세 <ExternalLink size={14} />
               </a>
             </div>
           )}
@@ -89,9 +87,9 @@ export default function MapPanel({ session }: { session?: ChatSession }) {
               <Compass size={30} />
             </div>
           </div>
-          <h3>어떤 장소가 궁금하세요?</h3>
+          <h3>어떤 식당을 찾으세요?</h3>
           <p>
-            AI에게 원하는 장소를 물어보면
+            AI에게 원하는 식사를 물어보면
             <br /> 검색 결과와 실제 지도를 보여드립니다.
           </p>
           <span className="map-empty-label">

@@ -3,6 +3,7 @@
 import {
   ArrowUpRight,
   Bookmark,
+  CalendarDays,
   CheckCircle2,
   MapPin,
   Phone,
@@ -41,7 +42,7 @@ export default function PlaceCard({
         <button
           type="button"
           className={`bookmark-button ${bookmarked ? "bookmarked" : ""}`}
-          onClick={() => dispatch(toggleFavorite(place))}
+          onClick={() => dispatch(toggleFavorite(place.name))}
           aria-label={
             bookmarked
               ? `${place.name} 즐겨찾기 해제`
@@ -94,6 +95,31 @@ export default function PlaceCard({
           상세 보기 <ArrowUpRight size={15} />
         </a>
       </div>
+      {!compact && (
+        <p className="place-verification">가격·영업·예약 현황은 별도 확인</p>
+      )}
+      {(place.booking_url || place.waitlist_url) && (
+        <div className="booking-actions">
+          {place.booking_url && (
+            <a
+              href={place.booking_url}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <CalendarDays size={13} /> 예약 페이지
+            </a>
+          )}
+          {place.waitlist_url && (
+            <a
+              href={place.waitlist_url}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              웨이팅 페이지
+            </a>
+          )}
+        </div>
+      )}
       {!compact && place.phone && (
         <a
           className="place-phone"

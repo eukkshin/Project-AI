@@ -1,0 +1,85 @@
+"use client";
+import {
+  ArrowUpRight,
+  Coffee,
+  Heart,
+  Sparkles,
+  Utensils,
+  Wine,
+} from "lucide-react";
+
+const TOPICS = [
+  {
+    name: "데이트를 위한 저녁",
+    label: "SPECIAL OCCASIONS",
+    desc: "함께하는 시간에 집중하고 싶은 날",
+    Icon: Heart,
+    prompt: "데이트에 좋은 식당을 추천해줘",
+  },
+  {
+    name: "한 접시의 새로운 경험",
+    label: "EXPLORE CUISINE",
+    desc: "평소와 다른 장르의 음식을 찾고 싶을 때",
+    Icon: Wine,
+    prompt: "특별한 음식을 경험할 수 있는 레스토랑을 찾아줘",
+  },
+  {
+    name: "나만의 한 끼",
+    label: "CASUAL DINING",
+    desc: "혼자서 편하게 즐기는 식사",
+    Icon: Utensils,
+    prompt: "혼자 식사하기 편한 곳 찾아줘",
+  },
+  {
+    name: "커피와 디저트",
+    label: "COFFEE & DESSERT",
+    desc: "느긋하게 쉬어갈 공간을 찾는 오후",
+    Icon: Coffee,
+    prompt: "조용한 카페와 디저트 가게를 찾아줘",
+  },
+];
+export default function GuideView({
+  onPrompt,
+}: {
+  onPrompt: (q: string) => void;
+}) {
+  return (
+    <main className="content-view guide-view">
+      <span className="eyebrow">DINING EDITORIAL</span>
+      <div className="page-title-row">
+        <div>
+          <h1>미식 가이드</h1>
+          <p>상황과 취향으로 시작하는 작은 미식 제안.</p>
+        </div>
+      </div>
+      <div className="guide-hero">
+        <Sparkles size={23} />
+        <h2>언제나 새로운 식사의 이유가 있습니다.</h2>
+        <p>아래 테마를 선택하면 그 주제로 AI 컨시어지에게 질문을 준비합니다.</p>
+      </div>
+      <div className="guide-grid">
+        {TOPICS.map(({ name, label, desc, Icon, prompt }) => (
+          <button
+            onClick={() => onPrompt(prompt)}
+            key={name}
+            className="guide-tile"
+          >
+            <span className="guide-illustration">
+              <Icon size={32} strokeWidth={1.5} />
+            </span>
+            <span className="eyebrow">{label}</span>
+            <strong>{name}</strong>
+            <small>{desc}</small>
+            <span className="guide-action">
+              AI에게 추천받기 <ArrowUpRight size={16} />
+            </span>
+          </button>
+        ))}
+      </div>
+      <p className="privacy-note">
+        이 페이지는 식당 순위나 실시간 인기도를 주장하지 않는 주제별 탐색
+        가이드입니다.
+      </p>
+    </main>
+  );
+}

@@ -32,7 +32,7 @@ export default function ChatComposer({
           ref={ref}
           rows={1}
           value={value}
-          maxLength={2000}
+          maxLength={1500}
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={(e) => {
             if (
@@ -46,7 +46,7 @@ export default function ChatComposer({
           }}
           disabled={disabled}
           aria-label="AI에게 질문하기"
-          placeholder={`${district}에서 어떤 장소를 찾으시나요?`}
+          placeholder={`${district}에서 어떤 식사를 하고 싶으세요?`}
         />
         <button
           type="button"

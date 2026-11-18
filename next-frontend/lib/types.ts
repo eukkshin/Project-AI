@@ -21,6 +21,13 @@ export interface PlaceInfo {
   phone: string;
   place_url: string;
   source: string;
+  booking_url: string;
+  waitlist_url: string;
+}
+
+export interface SavedRestaurant {
+  name: string;
+  createdAt: number;
 }
 
 export interface ChatResponse {
@@ -46,6 +53,15 @@ export const DISTRICTS = [
   "강북구",
   "중랑구",
   "성북구",
+  "강남구",
+  "마포구",
+  "성동구",
+  "송파구",
+  "종로구",
+  "용산구",
+  "서초구",
+  "영등포구",
+  "강서구",
 ] as const;
 
 export function placeKey(place: PlaceInfo): string {

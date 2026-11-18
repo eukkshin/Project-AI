@@ -103,7 +103,7 @@ export default function SettingsDialog({
           <div>
             <h3>대화 기록 삭제</h3>
             <p className="hint">
-              저장 여부와 관계없이 현재 대화 기록을 삭제합니다. 즐겨찾기는
+              저장 여부와 관계없이 현재 대화 기록을 삭제합니다. 저장한 컬렉션은
               유지됩니다.
             </p>
           </div>

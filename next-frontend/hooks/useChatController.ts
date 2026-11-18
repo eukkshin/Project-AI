@@ -34,7 +34,7 @@ export function useChatController() {
       const query = raw.trim();
       if (
         !query ||
-        query.length > 2000 ||
+        query.length > 1500 ||
         isLoading ||
         !activeSessionId ||
         !activeSession

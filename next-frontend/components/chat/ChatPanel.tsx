@@ -6,8 +6,7 @@ import {
   Check,
   Coffee,
   Copy,
-  FerrisWheel,
-  GraduationCap,
+  Heart,
   Map,
   MapPin,
   MessageSquare,
@@ -15,6 +14,7 @@ import {
   Sparkles,
   Square,
   Utensils,
+  Wine,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
@@ -27,13 +27,17 @@ import { choosePlace, setInputText, setMobileView } from "@/store/chatSlice";
 
 import type { ChatSession, PlaceInfo } from "@/lib/types";
 const shortcuts = [
-  { label: "맛집", prompt: "지금 가기 좋은 맛집 추천해줘", Icon: Utensils },
-  { label: "카페", prompt: "조용하고 분위기 좋은 카페 찾아줘", Icon: Coffee },
-  { label: "학원", prompt: "근처 학원 찾아줘", Icon: GraduationCap },
+  { label: "데이트", prompt: "조용한 데이트 식당 추천해줘", Icon: Heart },
   {
-    label: "놀거리",
-    prompt: "주말에 가볼 만한 곳 추천해줘",
-    Icon: FerrisWheel,
+    label: "파인다이닝",
+    prompt: "특별한 날 갈 만한 코스 요리 식당 찾아줘",
+    Icon: Wine,
+  },
+  { label: "카페", prompt: "분위기 좋은 카페 찾아줘", Icon: Coffee },
+  {
+    label: "혼밥",
+    prompt: "혼자 편하게 식사할 만한 음식점 찾아줘",
+    Icon: Utensils,
   },
 ];
 
@@ -77,12 +81,12 @@ export default function ChatPanel({ session, send, retry, onCancel }: Props) {
             <div className="welcome-icon">
               <Sparkles size={24} />
             </div>
-            <span className="eyebrow">YOUR LOCAL AI COMPANION</span>
-            <h1>오늘은 어디로 가볼까요?</h1>
+            <span className="eyebrow">PERSONAL DINING CONCIERGE</span>
+            <h1>오늘은 무엇을 맛볼까요?</h1>
             <p>
-              <strong>{selectedDistrict}</strong>의 맛집부터 카페, 학원,
-              놀거리까지
-              <br className="desktop-break" /> 필요한 정보를 편하게 물어보세요.
+              <strong>{selectedDistrict}</strong>에서 만나는 식당과 카페.
+              <br className="desktop-break" /> 취향에 맞는 미식 경험을
+              찾아드려요.
             </p>
             <div className="shortcut-grid" aria-label="빠른 질문">
               {shortcuts.map(({ label, prompt, Icon }) => (
@@ -110,7 +114,7 @@ export default function ChatPanel({ session, send, retry, onCancel }: Props) {
         {hasMessages && (
           <div className="conversation">
             <div className="conversation-label">
-              <span className="status-dot" /> 동네 AI와 대화 중
+              <span className="status-dot" /> DINOVO 컨시어지와 대화 중
             </div>
             {session?.messages.map((msg) => (
               <div
@@ -204,9 +208,7 @@ export default function ChatPanel({ session, send, retry, onCancel }: Props) {
                       place={place}
                       compact={false}
                       selected={placeKey(place) === selectedPlaceKey}
-                      bookmarked={favorites.some(
-                        (p) => placeKey(p) === placeKey(place),
-                      )}
+                      bookmarked={favorites.some((p) => p.name === place.name)}
                       onSelect={() => {
                         dispatch(choosePlace(placeKey(place)));
                         dispatch(setMobileView("map"));

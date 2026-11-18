@@ -6,7 +6,7 @@ import type {
   ChatResponse,
   ChatSession,
   MobileView,
-  PlaceInfo,
+  SavedRestaurant,
 } from "@/lib/types";
 import type { StoredState } from "@/lib/storage";
 
@@ -28,7 +28,7 @@ interface ChatState {
   isLoading: boolean;
   error: string | null;
   selectedPlaceKey: string | null;
-  favorites: PlaceInfo[];
+  favorites: SavedRestaurant[];
   mobileView: MobileView;
   saveHistory: boolean;
   hydrated: boolean;
@@ -159,10 +159,11 @@ const slice = createSlice({
     setMobileView(state, action: PayloadAction<MobileView>) {
       state.mobileView = action.payload;
     },
-    toggleFavorite(state, action: PayloadAction<PlaceInfo>) {
-      const key = placeKey(action.payload);
-      const i = state.favorites.findIndex((p) => placeKey(p) === key);
-      if (i === -1) state.favorites.unshift(action.payload);
+    toggleFavorite(state, action: PayloadAction<string>) {
+      const name = action.payload.trim().slice(0, 90);
+      if (!name) return;
+      const i = state.favorites.findIndex((p) => p.name === name);
+      if (i === -1) state.favorites.unshift({ name, createdAt: Date.now() });
       else state.favorites.splice(i, 1);
     },
     setSaveHistory(state, action: PayloadAction<boolean>) {

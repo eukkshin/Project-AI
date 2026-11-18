@@ -18,7 +18,16 @@ function PersistenceBridge({ children }: { children: React.ReactNode }) {
       saveStoredState({
         district: state.selectedDistrict,
         saveHistory: state.saveHistory,
-        sessions: state.saveHistory ? state.sessions.slice(0, 30) : [],
+        sessions: state.saveHistory
+          ? state.sessions
+              .slice(0, 30)
+              .map((s) => ({
+                ...s,
+                places: [],
+                showMap: false,
+                suggestedQuestions: [],
+              }))
+          : [],
         favorites: state.favorites.slice(0, 100),
       });
     };
