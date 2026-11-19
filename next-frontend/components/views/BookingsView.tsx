@@ -26,6 +26,7 @@ export default function BookingsView({ goAccount }: { goAccount: () => void }) {
     try {
       const data = await api<ApiList>("/api/bookings/demo");
       setItems(data.items);
+      window.dispatchEvent(new Event("dinovo:bookings-changed"));
     } catch (e) {
       setError(
         e instanceof Error ? e.message : "예약 정보를 불러오지 못했습니다.",

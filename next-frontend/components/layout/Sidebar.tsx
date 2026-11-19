@@ -8,6 +8,7 @@ import {
   Compass,
   CreditCard,
   History,
+  LogIn,
   MessageCircle,
   Plus,
   Search,
@@ -16,6 +17,9 @@ import {
   UserRound,
   X,
 } from "lucide-react";
+import { useEffect, useState } from "react";
+
+import { api, token, User } from "@/lib/accountApi";
 
 import type { ChatSession } from "@/lib/types";
 import type { View } from "@/components/layout/Topbar";
@@ -41,7 +45,6 @@ const NAV = [
   { key: "history", label: "대화 기록", Icon: History },
   { key: "payments", label: "결제수단", Icon: CreditCard },
   { key: "bookings", label: "예약 승인", Icon: CalendarCheck },
-  { key: "account", label: "내 계정", Icon: UserRound },
 ] as const;
 export default function Sidebar({
   sessions,
@@ -55,6 +58,31 @@ export default function Sidebar({
   onSettings,
   onClose,
 }: Props) {
+  const [account, setAccount] = useState<User | null>(null);
+  useEffect(() => {
+    let mounted = true;
+    async function check() {
+      if (!token()) {
+        if (mounted) setAccount(null);
+        return;
+      }
+      try {
+        const result = await api<{ user: User }>("/api/auth/me");
+        if (mounted) setAccount(result.user);
+      } catch {
+        if (mounted) setAccount(null);
+      }
+    }
+    void check();
+    window.addEventListener("dinovo:auth-changed", check);
+    const onFocus = () => void check();
+    window.addEventListener("focus", onFocus);
+    return () => {
+      mounted = false;
+      window.removeEventListener("dinovo:auth-changed", check);
+      window.removeEventListener("focus", onFocus);
+    };
+  }, []);
   const recent = sessions
     .filter((s) => s.messages.length)
     .sort((a, b) => b.updatedAt - a.updatedAt)
@@ -125,17 +153,24 @@ export default function Sidebar({
           )}
         </div>
         <div className="sidebar-bottom">
-          <div className="sidebar-help">
-            <span className="sidebar-help-icon">
-              <Sparkles size={18} />
+          <button
+            type="button"
+            className={`sidebar-account ${view === "account" ? "active" : ""}`}
+            onClick={() => onNavigate("account")}
+          >
+            <span className="sidebar-account-avatar">
+              {account ? <UserRound size={20} /> : <LogIn size={20} />}
             </span>
-            <strong>나만의 AI 미식 가이드</strong>
-            <p>
-              오늘의 식사를 위한
-              <br />
-              좋은 선택을 함께 찾아요.
-            </p>
-          </div>
+            <span className="sidebar-account-label">
+              <strong>
+                {account ? account.display_name : "로그인 / 회원가입"}
+              </strong>
+              <small>
+                {account ? "내 계정 및 프로필" : "DINOVO 계정 시작하기"}
+              </small>
+            </span>
+            <ArrowUpRight size={16} />
+          </button>
           <button className="side-link settings-link" onClick={onSettings}>
             <Settings2 size={18} /> 환경 설정
           </button>

@@ -3311,3 +3311,294 @@ button {
     padding: 18px;
   }
 }
+
+/* DINOVO v1.6 — ChatGPT-inspired account placement and booking command center */
+.sidebar-account {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 11px;
+  padding: 10px 9px;
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 12px;
+  text-align: left;
+}
+.sidebar-account:hover,
+.sidebar-account.active {
+  background: var(--accent-soft);
+  border-color: var(--border-strong);
+}
+.sidebar-account-avatar {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--accent);
+}
+.sidebar-account-label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+.sidebar-account-label strong {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 12px;
+}
+.sidebar-account-label small {
+  color: var(--text-faint);
+  font-size: 10px;
+}
+.sidebar-account > svg:last-child {
+  color: var(--text-faint);
+  flex-shrink: 0;
+}
+.booking-top-controls {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.booking-top-controls > .icon-button {
+  border: 1px solid var(--border);
+  background: var(--surface-muted);
+  border-radius: 11px;
+}
+.booking-progress-pill {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--border-strong);
+  color: var(--text);
+  background: var(--surface-muted);
+  border-radius: 50px;
+  height: 36px;
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 680;
+  white-space: nowrap;
+}
+.booking-progress-pill.needs-approval {
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+}
+.booking-progress-pill:hover {
+  border-color: var(--accent);
+}
+.booking-notify-trigger {
+  position: relative;
+}
+.booking-notify-count {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  display: grid;
+  place-items: center;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 3px;
+  border-radius: 30px;
+  background: #ad4b4b;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  border: 2px solid var(--surface);
+}
+.booking-popover {
+  position: absolute;
+  top: calc(100% + 13px);
+  right: 0;
+  width: min(356px, calc(100vw - 22px));
+  z-index: 80;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  box-shadow: 0 18px 55px rgba(16, 23, 30, 0.18);
+  border-radius: 16px;
+  padding: 12px;
+  color: var(--text);
+}
+.booking-popover-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 6px 10px;
+  font-size: 14px;
+}
+.booking-popover-close {
+  background: transparent;
+  color: var(--text-soft);
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+}
+.booking-popover-close:hover {
+  background: var(--surface-hover);
+}
+.booking-popover-empty {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+  gap: 12px;
+  padding: 28px 17px;
+  color: var(--text-soft);
+}
+.booking-popover-empty p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.7;
+}
+.booking-popover-empty span {
+  font-size: 11px;
+  color: var(--text-faint);
+}
+.booking-popover-empty button {
+  border-radius: 9px;
+  background: var(--accent);
+  color: white;
+  padding: 10px 15px;
+  font-weight: 700;
+  font-size: 12px;
+}
+.booking-popover-list {
+  max-height: 320px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.booking-popover-entry {
+  background: transparent;
+  width: 100%;
+  text-align: left;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  border-radius: 11px;
+  padding: 11px 9px;
+  color: var(--text);
+}
+.booking-popover-entry:hover {
+  background: var(--surface-hover);
+}
+.booking-entry-symbol {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  background: var(--surface-muted);
+  border-radius: 10px;
+  color: var(--text-soft);
+}
+.booking-entry-symbol.waiting {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.booking-entry-content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  gap: 5px;
+}
+.booking-entry-content strong {
+  font-size: 12px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.booking-entry-content > span {
+  font-size: 11px;
+  color: var(--text-soft);
+}
+.booking-entry-open {
+  font-size: 11px;
+  color: var(--accent);
+  font-weight: 700;
+}
+.booking-popover-footer {
+  width: 100%;
+  text-align: center;
+  padding: 11px;
+  border-radius: 9px;
+  background: var(--surface-muted);
+  color: var(--text);
+  font-weight: 700;
+  font-size: 12px;
+  margin-top: 9px;
+}
+.booking-popover-footer:hover {
+  background: var(--surface-hover);
+}
+.booking-popover-disclaimer {
+  font-size: 10px;
+  line-height: 1.5;
+  color: var(--text-faint);
+  margin: 11px 5px 2px;
+}
+.booking-more-popover {
+  width: 225px;
+  padding: 7px;
+}
+.booking-more-popover > button {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  color: var(--text);
+  border-radius: 8px;
+  font-size: 12px;
+  padding: 11px 12px;
+}
+.booking-more-popover > button:hover {
+  background: var(--surface-hover);
+}
+.booking-more-error {
+  font-size: 11px;
+  color: #c65b5b;
+  padding: 6px 10px;
+}
+@media (max-width: 740px) {
+  .booking-progress-pill {
+    padding: 0 9px;
+    height: 34px;
+    font-size: 10px;
+  }
+  .booking-top-controls {
+    gap: 3px;
+  }
+  .booking-top-controls > .icon-button {
+    width: 33px;
+    height: 33px;
+  }
+  .booking-popover {
+    right: -3px;
+  }
+}
+@media (max-width: 390px) {
+  .booking-progress-pill {
+    max-width: 108px;
+  }
+  .booking-progress-pill span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .district-select {
+    display: none;
+  }
+}

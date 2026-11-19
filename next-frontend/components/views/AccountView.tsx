@@ -35,6 +35,7 @@ export default function AccountView() {
       storeToken(result.access_token);
       setUser(result.user);
       setPassword("");
+      window.dispatchEvent(new Event("dinovo:auth-changed"));
     } catch (e) {
       setError(e instanceof Error ? e.message : "인증에 실패했습니다.");
     } finally {
@@ -47,6 +48,7 @@ export default function AccountView() {
     } catch {}
     clearToken();
     setUser(null);
+    window.dispatchEvent(new Event("dinovo:auth-changed"));
   }
   return (
     <section className="account-view">
