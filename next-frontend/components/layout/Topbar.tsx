@@ -13,7 +13,9 @@ export type View =
   | "journal"
   | "guide"
   | "history"
-  | "payments";
+  | "payments"
+  | "account"
+  | "bookings";
 interface Props {
   district: string;
   onDistrict: (district: string) => void;

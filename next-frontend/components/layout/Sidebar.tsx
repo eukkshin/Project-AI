@@ -4,6 +4,7 @@ import {
   BookHeart,
   Bookmark,
   BookOpen,
+  CalendarCheck,
   Compass,
   CreditCard,
   History,
@@ -12,6 +13,7 @@ import {
   Search,
   Settings2,
   Sparkles,
+  UserRound,
   X,
 } from "lucide-react";
 
@@ -37,7 +39,9 @@ const NAV = [
   { key: "journal", label: "미식 다이어리", Icon: BookHeart },
   { key: "guide", label: "미식 가이드", Icon: BookOpen },
   { key: "history", label: "대화 기록", Icon: History },
-  { key: "payments", label: "결제수단 · 예약", Icon: CreditCard },
+  { key: "payments", label: "결제수단", Icon: CreditCard },
+  { key: "bookings", label: "예약 승인", Icon: CalendarCheck },
+  { key: "account", label: "내 계정", Icon: UserRound },
 ] as const;
 export default function Sidebar({
   sessions,

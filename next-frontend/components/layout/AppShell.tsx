@@ -9,6 +9,8 @@ import SettingsDialog from "@/components/common/SettingsDialog";
 import Sidebar from "@/components/layout/Sidebar";
 import Topbar, { View } from "@/components/layout/Topbar";
 import MapPanel from "@/components/map/MapPanel";
+import AccountView from "@/components/views/AccountView";
+import BookingsView from "@/components/views/BookingsView";
 import CollectionsView from "@/components/views/CollectionsView";
 import ExploreView from "@/components/views/ExploreView";
 import GuideView from "@/components/views/GuideView";
@@ -31,6 +33,8 @@ const PATHS: Record<View, string> = {
   guide: "/guide",
   history: "/history",
   payments: "/payments",
+  account: "/account",
+  bookings: "/bookings",
 };
 
 function viewFromPath(pathname: string | null): View {
@@ -171,6 +175,10 @@ export default function AppShell() {
           <GuideView onPrompt={prompt} />
         ) : view === "payments" ? (
           <PaymentsView />
+        ) : view === "account" ? (
+          <AccountView />
+        ) : view === "bookings" ? (
+          <BookingsView goAccount={() => navigate("account")} />
         ) : (
           <HistoryView onOpen={openChat} onNew={newChat} />
         )}

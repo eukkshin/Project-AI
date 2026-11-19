@@ -1,7 +1,11 @@
-.venv/
 __pycache__/
-*.pyc
+*.py[cod]
+.venv/
 .env
 .env.*
 !.env.example
-.pytest_cache/
+
+# Local / ephemeral SQLite database
+*.sqlite3
+*.sqlite3-*
+*.db
