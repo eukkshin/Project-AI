@@ -1,7 +1,142 @@
 "use client";
-import { ArrowUpRight, Bookmark, Compass, History, MessageCircle, Plus, Settings2, Sparkles, X, BookHeart, BookOpen, Search } from "lucide-react";
+import {
+  ArrowUpRight,
+  BookHeart,
+  Bookmark,
+  BookOpen,
+  Compass,
+  CreditCard,
+  History,
+  MessageCircle,
+  Plus,
+  Search,
+  Settings2,
+  Sparkles,
+  X,
+} from "lucide-react";
+
 import type { ChatSession } from "@/lib/types";
 import type { View } from "@/components/layout/Topbar";
-interface Props {sessions:ChatSession[];activeSessionId:string|null;favoritesCount:number;view:View;open:boolean;onNew:()=>void;onSelect:(id:string)=>void;onNavigate:(v:View)=>void;onSettings:()=>void;onClose:()=>void}
-const NAV=[{key:"home",label:"홈",Icon:Compass},{key:"chat",label:"AI 미식 컨시어지",Icon:Sparkles},{key:"explore",label:"식당 탐색",Icon:Search},{key:"collections",label:"내 컬렉션",Icon:Bookmark},{key:"journal",label:"미식 다이어리",Icon:BookHeart},{key:"guide",label:"미식 가이드",Icon:BookOpen},{key:"history",label:"대화 기록",Icon:History}] as const;
-export default function Sidebar({sessions,activeSessionId,favoritesCount,view,open,onNew,onSelect,onNavigate,onSettings,onClose}:Props){const recent=sessions.filter(s=>s.messages.length).sort((a,b)=>b.updatedAt-a.updatedAt).slice(0,7);return <><>{open&&<button className="sidebar-scrim" aria-label="메뉴 닫기" onClick={onClose}/>}</><aside className={`sidebar ${open?"sidebar-open":""}`}><div className="sidebar-mobile-head"><span>메뉴</span><button className="icon-button" onClick={onClose} aria-label="메뉴 닫기"><X size={18}/></button></div><button className="new-chat" onClick={onNew}><Plus size={18}/> 새로운 미식 대화</button><nav className="side-nav" aria-label="사이드 메뉴">{NAV.map(({key,label,Icon})=><button key={key} className={`side-link ${view===key?"active":""}`} onClick={()=>onNavigate(key)}><Icon size={18}/>{label}{key==="collections"&&<span className="side-count">{favoritesCount}</span>}</button>)}</nav><div className="sidebar-divider"/><div className="sidebar-heading"><span>최근 대화</span><button type="button" onClick={()=>onNavigate("history")}>모두 보기 <ArrowUpRight size={14}/></button></div><div className="recent-list">{recent.length?recent.map(s=><button key={s.id} type="button" className={`recent-item ${view==="chat"&&activeSessionId===s.id?"selected":""}`} onClick={()=>onSelect(s.id)} title={s.title}><MessageCircle size={15}/><span>{s.title}</span></button>):<p className="sidebar-empty">대화를 시작하면 여기에 나타납니다.</p>}</div><div className="sidebar-bottom"><div className="sidebar-help"><span className="sidebar-help-icon"><Sparkles size={18}/></span><strong>나만의 AI 미식 가이드</strong><p>오늘의 식사를 위한<br/>좋은 선택을 함께 찾아요.</p></div><button className="side-link settings-link" onClick={onSettings}><Settings2 size={18}/> 환경 설정</button></div></aside></>}
+interface Props {
+  sessions: ChatSession[];
+  activeSessionId: string | null;
+  favoritesCount: number;
+  view: View;
+  open: boolean;
+  onNew: () => void;
+  onSelect: (id: string) => void;
+  onNavigate: (v: View) => void;
+  onSettings: () => void;
+  onClose: () => void;
+}
+const NAV = [
+  { key: "home", label: "홈", Icon: Compass },
+  { key: "chat", label: "AI 미식 컨시어지", Icon: Sparkles },
+  { key: "explore", label: "식당 탐색", Icon: Search },
+  { key: "collections", label: "내 컬렉션", Icon: Bookmark },
+  { key: "journal", label: "미식 다이어리", Icon: BookHeart },
+  { key: "guide", label: "미식 가이드", Icon: BookOpen },
+  { key: "history", label: "대화 기록", Icon: History },
+  { key: "payments", label: "결제수단 · 예약", Icon: CreditCard },
+] as const;
+export default function Sidebar({
+  sessions,
+  activeSessionId,
+  favoritesCount,
+  view,
+  open,
+  onNew,
+  onSelect,
+  onNavigate,
+  onSettings,
+  onClose,
+}: Props) {
+  const recent = sessions
+    .filter((s) => s.messages.length)
+    .sort((a, b) => b.updatedAt - a.updatedAt)
+    .slice(0, 7);
+  return (
+    <>
+      <>
+        {open && (
+          <button
+            className="sidebar-scrim"
+            aria-label="메뉴 닫기"
+            onClick={onClose}
+          />
+        )}
+      </>
+      <aside className={`sidebar ${open ? "sidebar-open" : ""}`}>
+        <div className="sidebar-mobile-head">
+          <span>메뉴</span>
+          <button
+            className="icon-button"
+            onClick={onClose}
+            aria-label="메뉴 닫기"
+          >
+            <X size={18} />
+          </button>
+        </div>
+        <button className="new-chat" onClick={onNew}>
+          <Plus size={18} /> 새로운 미식 대화
+        </button>
+        <nav className="side-nav" aria-label="사이드 메뉴">
+          {NAV.map(({ key, label, Icon }) => (
+            <button
+              key={key}
+              className={`side-link ${view === key ? "active" : ""}`}
+              onClick={() => onNavigate(key)}
+            >
+              <Icon size={18} />
+              {label}
+              {key === "collections" && (
+                <span className="side-count">{favoritesCount}</span>
+              )}
+            </button>
+          ))}
+        </nav>
+        <div className="sidebar-divider" />
+        <div className="sidebar-heading">
+          <span>최근 대화</span>
+          <button type="button" onClick={() => onNavigate("history")}>
+            모두 보기 <ArrowUpRight size={14} />
+          </button>
+        </div>
+        <div className="recent-list">
+          {recent.length ? (
+            recent.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                className={`recent-item ${view === "chat" && activeSessionId === s.id ? "selected" : ""}`}
+                onClick={() => onSelect(s.id)}
+                title={s.title}
+              >
+                <MessageCircle size={15} />
+                <span>{s.title}</span>
+              </button>
+            ))
+          ) : (
+            <p className="sidebar-empty">대화를 시작하면 여기에 나타납니다.</p>
+          )}
+        </div>
+        <div className="sidebar-bottom">
+          <div className="sidebar-help">
+            <span className="sidebar-help-icon">
+              <Sparkles size={18} />
+            </span>
+            <strong>나만의 AI 미식 가이드</strong>
+            <p>
+              오늘의 식사를 위한
+              <br />
+              좋은 선택을 함께 찾아요.
+            </p>
+          </div>
+          <button className="side-link settings-link" onClick={onSettings}>
+            <Settings2 size={18} /> 환경 설정
+          </button>
+        </div>
+      </aside>
+    </>
+  );
+}

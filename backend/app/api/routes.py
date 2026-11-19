@@ -64,3 +64,10 @@ async def chat(request: ChatRequest):
         suggested_questions=[q for q in intent.suggested_questions if isinstance(q, str)][:3]
         or ["가까운 곳으로 다시 찾아줘", "다른 음식으로 추천해줘"],
     )
+
+
+@router.get("/payments/providers")
+async def payment_providers():
+    """Public UI capabilities. No payment is enabled or initiated."""
+    from app.services.payment_providers import PROVIDERS
+    return {"providers": [provider.model_dump() for provider in PROVIDERS], "checkout_enabled": False}

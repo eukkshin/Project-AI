@@ -15,6 +15,7 @@ import GuideView from "@/components/views/GuideView";
 import HistoryView from "@/components/views/HistoryView";
 import HomeView from "@/components/views/HomeView";
 import JournalView from "@/components/views/JournalView";
+import PaymentsView from "@/components/views/PaymentsView";
 import { useAppDispatch, useAppSelector } from "@/hooks/redux";
 import { useChatController } from "@/hooks/useChatController";
 import { setDistrict, setInputText, setMobileView } from "@/store/chatSlice";
@@ -29,6 +30,7 @@ const PATHS: Record<View, string> = {
   journal: "/journal",
   guide: "/guide",
   history: "/history",
+  payments: "/payments",
 };
 
 function viewFromPath(pathname: string | null): View {
@@ -167,6 +169,8 @@ export default function AppShell() {
           <JournalView />
         ) : view === "guide" ? (
           <GuideView onPrompt={prompt} />
+        ) : view === "payments" ? (
+          <PaymentsView />
         ) : (
           <HistoryView onOpen={openChat} onNew={newChat} />
         )}
