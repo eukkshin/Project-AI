@@ -1,6 +1,5 @@
 """Demo email authentication, provider capability disclosure, no fake OAuth login."""
 import hashlib
-import os
 import re
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
