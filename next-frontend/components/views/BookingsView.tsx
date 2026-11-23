@@ -22,6 +22,8 @@ export default function BookingsView({ goAccount }: { goAccount: () => void }) {
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
   const [signed, setSigned] = useState(false);
+  const [listFilter, setListFilter] = useState<"all" | "pending" | "completed">("all");
+  const filteredItems = items.filter(item => listFilter === "all" || (listFilter === "pending" ? item.status === "approval_pending" : item.status !== "approval_pending"));
   async function refresh() {
     try {
       const data = await api<ApiList>("/api/bookings/demo");
@@ -187,10 +189,11 @@ export default function BookingsView({ goAccount }: { goAccount: () => void }) {
           </div>
           <div className="account-panel">
             <h2>내 예약 승인 내역</h2>
-            {items.length === 0 ? (
-              <p>아직 요청이 없습니다.</p>
+            <div className="d-booking-filters" role="group" aria-label="예약 상태별 보기">{([["all","전체"],["pending","승인 대기"],["completed","처리 내역"]] as const).map(([key,label])=><button key={key} type="button" aria-pressed={listFilter === key} onClick={()=>setListFilter(key)}>{label}{key==="pending" && items.some(item=>item.status==="approval_pending") ? ` (${items.filter(item=>item.status==="approval_pending").length})` : ""}</button>)}</div>
+            {filteredItems.length === 0 ? (
+              <p>{listFilter === "pending" ? "승인을 기다리는 요청이 없습니다." : "표시할 예약 요청이 없습니다."}</p>
             ) : (
-              items.map((item) => (
+              filteredItems.map((item) => (
                 <div key={item.id} className="booking-entry">
                   <strong>{item.restaurant}</strong>
                   <span>

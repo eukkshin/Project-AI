@@ -1,11 +1,14 @@
 "use client";
 
+import { Sparkles } from "lucide-react";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import LoginModal from "@/components/auth/LoginModal";
 import ChatPanel from "@/components/chat/ChatPanel";
 import SettingsDialog from "@/components/common/SettingsDialog";
+import ProfileDialog, { ProfilePanel } from "@/components/layout/ProfileDialog";
 import Sidebar from "@/components/layout/Sidebar";
 import Topbar, { View } from "@/components/layout/Topbar";
 import MapPanel from "@/components/map/MapPanel";
@@ -20,6 +23,7 @@ import JournalView from "@/components/views/JournalView";
 import PaymentsView from "@/components/views/PaymentsView";
 import { useAppDispatch, useAppSelector } from "@/hooks/redux";
 import { useChatController } from "@/hooks/useChatController";
+import { BookingDraft, parseBookingIntent } from "@/lib/bookingIntent";
 import { setDistrict, setInputText, setMobileView } from "@/store/chatSlice";
 
 // Cafe24 static hosting: Next.js basePath is compiled into the build.
@@ -59,7 +63,10 @@ export default function AppShell() {
   const nextPathname = usePathname();
   const [view, setView] = useState<View>(() => viewFromPath(nextPathname));
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [loginOpen, setLoginOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [profilePanel, setProfilePanel] = useState<ProfilePanel | null>(null);
+  const [bookingDraft, setBookingDraft] = useState<BookingDraft | null>(null);
 
   const {
     sessions,
@@ -95,13 +102,21 @@ export default function AppShell() {
   }
 
   function openChat(id: string) {
+    setBookingDraft(null);
     openSession(id);
     navigate("chat");
   }
 
   function newChat() {
+    setBookingDraft(null);
     startNew();
     navigate("chat");
+  }
+
+  function sendFromConcierge(query: string) {
+    const draft = parseBookingIntent(query);
+    if (draft) setBookingDraft(draft);
+    void send(query);
   }
 
   function prompt(text: string) {
@@ -125,8 +140,27 @@ export default function AppShell() {
     );
   }
 
+  // Sign-up is a clean, full-screen flow. Other pages use a shared top navigation.
+  if (view === "account") {
+    return (
+      <>
+        <AccountView
+          onBack={() => navigate("home")}
+          onLogin={() => setLoginOpen(true)}
+        />
+        {loginOpen && (
+          <LoginModal
+            onClose={() => setLoginOpen(false)}
+            onRegister={() => setLoginOpen(false)}
+          />
+        )}
+      </>
+    );
+  }
+  // Desktop sidebar is persistent across all app views; registration stays standalone.
+  const showChatSidebar = true;
   return (
-    <div className="app-shell">
+    <div className="app-shell d-shell">
       <Topbar
         district={selectedDistrict}
         onDistrict={(district) => dispatch(setDistrict(district))}
@@ -134,32 +168,46 @@ export default function AppShell() {
         onNavigate={navigate}
         onSettings={() => setSettingsOpen(true)}
         onMenu={() => setSidebarOpen(true)}
+        onLogin={() => setLoginOpen(true)}
       />
       <div
-        className={`app-content ${view !== "chat" ? "app-content-secondary" : ""} ${mobileView === "map" && view === "chat" ? "show-mobile-map" : ""}`}
+        className={`app-content d-content ${!showChatSidebar ? "d-no-sidebar" : ""} ${view !== "chat" ? "app-content-secondary" : ""} ${mobileView === "map" && view === "chat" ? "show-mobile-map" : ""}`}
       >
-        <Sidebar
-          sessions={sessions}
-          activeSessionId={activeSessionId}
-          favoritesCount={favorites.length}
-          view={view}
-          open={sidebarOpen}
-          onClose={() => setSidebarOpen(false)}
-          onNew={newChat}
-          onSelect={openChat}
-          onNavigate={navigate}
-          onSettings={() => {
-            setSidebarOpen(false);
-            setSettingsOpen(true);
-          }}
-        />
+        {(showChatSidebar || sidebarOpen) && (
+          <Sidebar
+            sessions={sessions}
+            activeSessionId={activeSessionId}
+            favoritesCount={favorites.length}
+            view={view}
+            open={sidebarOpen}
+            onClose={() => setSidebarOpen(false)}
+            onNew={newChat}
+            onSelect={openChat}
+            onNavigate={navigate}
+            onLogin={() => {
+              setSidebarOpen(false);
+              setLoginOpen(true);
+            }}
+            onSettings={() => {
+              setSidebarOpen(false);
+              setSettingsOpen(true);
+            }}
+            onProfilePanel={(panel) => {
+              setSidebarOpen(false);
+              setProfilePanel(panel);
+            }}
+          />
+        )}
         {view === "chat" ? (
           <>
             <ChatPanel
               session={activeSession}
-              send={(question) => void send(question)}
+              send={sendFromConcierge}
               retry={retryLast}
               onCancel={cancel}
+              bookingDraft={bookingDraft}
+              onLogin={() => setLoginOpen(true)}
+              onManageBookings={() => navigate("bookings")}
             />
             <MapPanel session={activeSession} />
           </>
@@ -175,14 +223,22 @@ export default function AppShell() {
           <GuideView onPrompt={prompt} />
         ) : view === "payments" ? (
           <PaymentsView />
-        ) : view === "account" ? (
-          <AccountView />
         ) : view === "bookings" ? (
-          <BookingsView goAccount={() => navigate("account")} />
+          <BookingsView goAccount={() => setLoginOpen(true)} />
         ) : (
           <HistoryView onOpen={openChat} onNew={newChat} />
         )}
       </div>
+      {profilePanel && (
+        <ProfileDialog
+          panel={profilePanel}
+          onClose={() => setProfilePanel(null)}
+          onLogin={() => {
+            setProfilePanel(null);
+            setLoginOpen(true);
+          }}
+        />
+      )}
       {settingsOpen && (
         <SettingsDialog
           onClose={() => setSettingsOpen(false)}
@@ -192,6 +248,52 @@ export default function AppShell() {
           }}
         />
       )}
+      {loginOpen && (
+        <LoginModal
+          onClose={() => setLoginOpen(false)}
+          onRegister={() => {
+            setLoginOpen(false);
+            navigate("account");
+          }}
+        />
+      )}
+      <nav className="d-mobile-nav" aria-label="모바일 빠른 메뉴">
+        <button
+          type="button"
+          aria-current={view === "home" ? "page" : undefined}
+          className={view === "home" ? "active" : ""}
+          onClick={() => navigate("home")}
+        >
+          홈
+        </button>
+        <button
+          type="button"
+          aria-current={view === "chat" ? "page" : undefined}
+          className={view === "chat" ? "active" : ""}
+          onClick={() => navigate("chat")}
+        >
+          <span>
+            <Sparkles size={17} aria-hidden="true" />
+          </span>
+          AI
+        </button>
+        <button
+          type="button"
+          aria-current={view === "explore" ? "page" : undefined}
+          className={view === "explore" ? "active" : ""}
+          onClick={() => navigate("explore")}
+        >
+          탐색
+        </button>
+        <button
+          type="button"
+          aria-current={view === "bookings" ? "page" : undefined}
+          className={view === "bookings" ? "active" : ""}
+          onClick={() => navigate("bookings")}
+        >
+          예약
+        </button>
+      </nav>
     </div>
   );
 }

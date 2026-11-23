@@ -1,21 +1,8 @@
 "use client";
 
-import {
-  Bell,
-  CalendarClock,
-  CheckCircle2,
-  Clock3,
-  Copy,
-  Ellipsis,
-  Moon,
-  Settings2,
-  Share2,
-  Sun,
-  X,
-} from "lucide-react";
+import { Bell, CalendarClock, CheckCircle2, Clock3, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { useTheme } from "@/components/common/ThemeProvider";
 import { api, Booking, token } from "@/lib/accountApi";
 
 import type { View } from "@/components/layout/Topbar";
@@ -43,14 +30,12 @@ const statusText: Record<string, string> = {
 
 type Props = { onNavigate: (view: View) => void; onSettings: () => void };
 
-export default function BookingControls({ onNavigate, onSettings }: Props) {
+export default function BookingControls({ onNavigate }: Props) {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [signedIn, setSignedIn] = useState(false);
-  const [panel, setPanel] = useState<"notifications" | "more" | null>(null);
+  const [panel, setPanel] = useState<"notifications" | null>(null);
   const [error, setError] = useState("");
-  const [copied, setCopied] = useState(false);
   const holder = useRef<HTMLDivElement>(null);
-  const { resolved, toggle } = useTheme();
 
   const refresh = useCallback(async () => {
     const hasToken = Boolean(token());
@@ -124,23 +109,6 @@ export default function BookingControls({ onNavigate, onSettings }: Props) {
     onNavigate(view);
   };
 
-  async function share() {
-    const link = window.location.href;
-    try {
-      if (navigator.share)
-        await navigator.share({ title: "DINOVO", url: link });
-      else if (navigator.clipboard) {
-        await navigator.clipboard.writeText(link);
-        setCopied(true);
-      } else {
-        setError("공유 기능을 사용할 수 없습니다.");
-      }
-    } catch (e) {
-      if (!(e instanceof DOMException && e.name === "AbortError"))
-        setError("공유에 실패했습니다.");
-    }
-  }
-
   return (
     <div className="booking-top-controls" ref={holder}>
       {status && (
@@ -169,16 +137,6 @@ export default function BookingControls({ onNavigate, onSettings }: Props) {
           </span>
         )}
       </button>
-      <button
-        type="button"
-        className="icon-button"
-        aria-label="더보기 메뉴"
-        aria-expanded={panel === "more"}
-        onClick={() => setPanel(panel === "more" ? null : "more")}
-      >
-        <Ellipsis size={21} />
-      </button>
-
       {panel === "notifications" && (
         <div
           className="booking-popover"
@@ -259,51 +217,6 @@ export default function BookingControls({ onNavigate, onSettings }: Props) {
           <p className="booking-popover-disclaimer">
             현재 예약은 시뮬레이션이며 실제 식당 예약은 발생하지 않습니다.
           </p>
-        </div>
-      )}
-
-      {panel === "more" && (
-        <div
-          className="booking-popover booking-more-popover"
-          role="menu"
-          aria-label="더보기"
-        >
-          <button type="button" role="menuitem" onClick={() => void share()}>
-            <Share2 size={17} /> {copied ? "링크 복사됨" : "현재 페이지 공유"}
-          </button>
-          <button
-            type="button"
-            role="menuitem"
-            onClick={() => {
-              toggle();
-              setPanel(null);
-            }}
-          >
-            {resolved === "light" ? <Moon size={17} /> : <Sun size={17} />}{" "}
-            {resolved === "light" ? "다크 모드" : "라이트 모드"}
-          </button>
-          <button
-            type="button"
-            role="menuitem"
-            onClick={() => {
-              setPanel(null);
-              onSettings();
-            }}
-          >
-            <Settings2 size={17} /> 환경 설정
-          </button>
-          {error && (
-            <p role="alert" className="booking-more-error">
-              {error}
-            </p>
-          )}
-          <button
-            type="button"
-            role="menuitem"
-            onClick={() => openPage("bookings")}
-          >
-            <Copy size={17} /> 예약 승인 관리
-          </button>
         </div>
       )}
     </div>

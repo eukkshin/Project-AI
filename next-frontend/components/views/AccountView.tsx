@@ -1,151 +1,36 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
+import { ArrowLeft, ArrowRight, Eye, EyeOff, LockKeyhole, Mail, UserRound } from "lucide-react";
+import { api, clearToken, storeToken, token, type User } from "@/lib/accountApi";
 
-import { api, clearToken, storeToken, token, User } from "@/lib/accountApi";
-
-type AuthResult = { user: User; access_token: string };
-export default function AccountView() {
-  const [mode, setMode] = useState<"login" | "register">("login");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
-  const [user, setUser] = useState<User | null>(null);
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-  useEffect(() => {
-    if (token())
-      void api<{ user: User }>("/api/auth/me")
-        .then((v) => setUser(v.user))
-        .catch(() => clearToken());
-  }, []);
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-    try {
-      const path = mode === "login" ? "/api/auth/login" : "/api/auth/register";
-      const result = await api<AuthResult>(path, {
-        method: "POST",
-        body: JSON.stringify({
-          email,
-          password,
-          ...(mode === "register" ? { display_name: name } : {}),
-        }),
-      });
-      storeToken(result.access_token);
-      setUser(result.user);
-      setPassword("");
-      window.dispatchEvent(new Event("dinovo:auth-changed"));
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "인증에 실패했습니다.");
-    } finally {
-      setLoading(false);
-    }
-  }
-  async function logout() {
-    try {
-      await api("/api/auth/logout", { method: "POST" });
-    } catch {}
-    clearToken();
-    setUser(null);
-    window.dispatchEvent(new Event("dinovo:auth-changed"));
-  }
-  return (
-    <section className="account-view">
-      <header>
-        <p className="account-eyebrow">DINOVO ACCOUNT</p>
-        <h1>내 계정</h1>
-        <p>예약 승인·알림을 위한 DINOVO 계정입니다.</p>
-      </header>
-      {user ? (
-        <div className="account-panel">
-          <h2>{user.display_name}님, 안녕하세요.</h2>
-          <p>{user.email}</p>
-          <p className="account-note">
-            현재는 발표용 SQLite 계정입니다. Render 무료 서비스가 재시작되면
-            계정 데이터가 초기화될 수 있습니다.
-          </p>
-          <button onClick={logout}>로그아웃</button>
-        </div>
-      ) : (
-        <div className="account-panel">
-          <div className="account-tabs">
-            <button
-              className={mode === "login" ? "on" : ""}
-              onClick={() => setMode("login")}
-            >
-              로그인
-            </button>
-            <button
-              className={mode === "register" ? "on" : ""}
-              onClick={() => setMode("register")}
-            >
-              회원가입
-            </button>
-          </div>
-          <form onSubmit={(e) => void submit(e)}>
-            {mode === "register" && (
-              <label>
-                닉네임
-                <input
-                  required
-                  maxLength={80}
-                  autoComplete="nickname"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                />
-              </label>
-            )}
-            <label>
-              이메일
-              <input
-                type="email"
-                required
-                autoComplete="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </label>
-            <label>
-              비밀번호
-              <input
-                type="password"
-                required
-                minLength={mode === "register" ? 10 : 1}
-                autoComplete={
-                  mode === "register" ? "new-password" : "current-password"
-                }
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </label>
-            {error && (
-              <p role="alert" className="account-error">
-                {error}
-              </p>
-            )}
-            <button type="submit" disabled={loading}>
-              {loading
-                ? "처리 중..."
-                : mode === "login"
-                  ? "로그인"
-                  : "회원가입"}
-            </button>
-          </form>
-          <p className="account-label">소셜 로그인 (API 연동 예정)</p>
-          <div className="account-social">
-            {["카카오", "네이버", "Google", "Apple"].map((p) => (
-              <button key={p} disabled title="OAuth 연동 후 이용 가능">
-                {p} · 준비 중
-              </button>
-            ))}
-          </div>
-          <p className="account-note">
-            소셜 로그인은 아직 실제로 사용할 수 없습니다. 테스트 시 이메일
-            계정을 이용해 주세요.
-          </p>
-        </div>
-      )}
-    </section>
-  );
+type Result={user:User;access_token:string};
+export default function AccountView({onBack,onLogin}:{onBack?:()=>void;onLogin?:()=>void}){
+ const [user,setUser]=useState<User|null>(null);
+ const [email,setEmail]=useState("");const [name,setName]=useState("");const [password,setPassword]=useState("");
+ const [show,setShow]=useState(false);const [error,setError]=useState("");const [loading,setLoading]=useState(false);
+ useEffect(()=>{if(token())void api<{user:User}>("/api/auth/me").then(x=>setUser(x.user)).catch(()=>clearToken());},[]);
+ async function submit(e:FormEvent<HTMLFormElement>){e.preventDefault();setLoading(true);setError("");try{
+  const result=await api<Result>("/api/auth/register",{method:"POST",body:JSON.stringify({email,password,display_name:name})});
+  storeToken(result.access_token);setUser(result.user);setPassword("");window.dispatchEvent(new Event("dinovo:auth-changed"));
+ }catch(err){setError(err instanceof Error?err.message:"회원가입에 실패했습니다.");}finally{setLoading(false);}}
+ async function logout(){try{await api("/api/auth/logout",{method:"POST"});}catch{}clearToken();setUser(null);window.dispatchEvent(new Event("dinovo:auth-changed"));}
+ return <main className="d-register-page">
+  <button className="d-register-back" onClick={onBack} type="button"><ArrowLeft size={17}/> 서비스로 돌아가기</button>
+  <div className="d-register-layout">
+   <div className="d-register-story" aria-hidden="true"><div className="d-register-story-content"><span>THE DINOVO EXPERIENCE</span><h2>한 번의 식사가<br/>오래도록 기억되도록.</h2><p>당신의 취향을 이해하는<br/>새로운 다이닝 컨시어지.</p></div></div>
+   <div className="d-register-card">
+    <div className="d-auth-logo">DINOVO<span>AI DINING CONCIERGE</span></div>
+    {user ? <><p className="d-auth-overline">YOUR ACCOUNT</p><h1>{user.display_name}님,<br/>환영합니다.</h1><p className="d-auth-intro">{user.email}</p><p className="d-register-notice">발표용 SQLite에 저장된 계정은 Render 재시작·배포 시 초기화될 수 있습니다.</p><button className="d-primary" onClick={onBack}>DINOVO 둘러보기 <ArrowRight size={17}/></button><button className="d-register-secondary" onClick={()=>void logout()}>로그아웃</button></>:
+    <><p className="d-auth-overline">BECOME A MEMBER</p><h1>당신만의 미식 여정을<br/>시작해 보세요.</h1><p className="d-auth-intro">DINOVO에 가입하고 취향과 예약을 한곳에서 관리하세요.</p>
+    <form className="d-auth-form" onSubmit={submit}>
+     <label>닉네임<div className="d-auth-field"><UserRound size={17}/><input required autoComplete="nickname" maxLength={80} placeholder="어떻게 불러드릴까요?" value={name} onChange={e=>setName(e.target.value)}/></div></label>
+     <label>이메일<div className="d-auth-field"><Mail size={17}/><input required type="email" autoComplete="email" placeholder="example@email.com" value={email} onChange={e=>setEmail(e.target.value)}/></div></label>
+     <label>비밀번호<div className="d-auth-field"><LockKeyhole size={17}/><input required type={show?"text":"password"} minLength={10} autoComplete="new-password" placeholder="10자 이상 입력하세요" value={password} onChange={e=>setPassword(e.target.value)}/><button type="button" onClick={()=>setShow(!show)} aria-label={show?"비밀번호 숨기기":"비밀번호 보기"}>{show?<EyeOff size={17}/>:<Eye size={17}/>}</button></div></label>
+     {error&&<p className="d-auth-error" role="alert">{error}</p>}
+     <p className="d-register-notice">가입하면 발표용 계정이 생성됩니다. 소셜 로그인 및 실제 예약 결제는 아직 연동되지 않았습니다.</p>
+     <button className="d-primary" type="submit" disabled={loading}>{loading?"가입 처리 중...":"이메일로 회원가입"}<ArrowRight size={17}/></button>
+    </form><p className="d-auth-bottom">이미 계정이 있으신가요? <button type="button" onClick={onLogin}>로그인</button></p></>}
+   </div>
+  </div>
+ </main>;
 }
