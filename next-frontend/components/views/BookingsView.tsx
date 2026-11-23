@@ -2,13 +2,22 @@
 import { useEffect, useState } from "react";
 
 import { api, Booking, token } from "@/lib/accountApi";
+import {
+  clearOfflineBookings,
+  createOfflineBooking,
+  decideOfflineBooking,
+  listOfflineBookings,
+  offlineDemoEnabled,
+  setOfflineDemoEnabled,
+} from "@/lib/offlineDemo";
 
 type ApiList = { items: Booking[] };
 const pretty = (s: string) =>
   (
     ({
       approval_pending: "승인 대기",
-      demo_approved: "모의 승인 완료",
+      demo_approved: "모의 승인 완료 · 실행 대기",
+      demo_confirmed: "가상 예약 실행 완료",
       rejected: "거절",
       expired: "승인 만료",
     }) as Record<string, string>
@@ -20,15 +29,30 @@ export default function BookingsView({ goAccount }: { goAccount: () => void }) {
   const [party, setParty] = useState(2);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [confirmationCodes, setConfirmationCodes] = useState<
+    Record<string, string>
+  >({});
   const [busy, setBusy] = useState(false);
   const [signed, setSigned] = useState(false);
-  const [listFilter, setListFilter] = useState<"all" | "pending" | "completed">("all");
-  const filteredItems = items.filter(item => listFilter === "all" || (listFilter === "pending" ? item.status === "approval_pending" : item.status !== "approval_pending"));
+  const [offline, setOffline] = useState(false);
+  const [listFilter, setListFilter] = useState<"all" | "pending" | "completed">(
+    "all",
+  );
+  const filteredItems = items.filter(
+    (item) =>
+      listFilter === "all" ||
+      (listFilter === "pending"
+        ? item.status === "approval_pending"
+        : item.status !== "approval_pending"),
+  );
   async function refresh() {
     try {
+      if (offlineDemoEnabled()) {
+        setItems(listOfflineBookings());
+        return;
+      }
       const data = await api<ApiList>("/api/bookings/demo");
       setItems(data.items);
-      window.dispatchEvent(new Event("dinovo:bookings-changed"));
     } catch (e) {
       setError(
         e instanceof Error ? e.message : "예약 정보를 불러오지 못했습니다.",
@@ -36,10 +60,33 @@ export default function BookingsView({ goAccount }: { goAccount: () => void }) {
     }
   }
   useEffect(() => {
-    setSigned(Boolean(token()));
-    if (token()) void refresh();
+    const synchronize = () => {
+      const local = offlineDemoEnabled();
+      setOffline(local);
+      const isSignedIn = local || Boolean(token());
+      setSigned(isSignedIn);
+      if (isSignedIn) {
+        void refresh();
+      } else {
+        setItems([]);
+        setError("");
+      }
+    };
+    synchronize();
+    window.addEventListener("dinovo:auth-changed", synchronize);
+    window.addEventListener("dinovo:bookings-changed", synchronize);
+    window.addEventListener("dinovo:offline-demo-changed", synchronize);
+    return () => {
+      window.removeEventListener("dinovo:auth-changed", synchronize);
+      window.removeEventListener("dinovo:bookings-changed", synchronize);
+      window.removeEventListener("dinovo:offline-demo-changed", synchronize);
+    };
   }, []);
   async function enablePush() {
+    if (offline) {
+      setError("로컬 시연 모드에서는 실제 푸시 알림을 보낼 수 없습니다.");
+      return;
+    }
     setError("");
     setNotice("");
     try {
@@ -84,21 +131,49 @@ export default function BookingsView({ goAccount }: { goAccount: () => void }) {
       setError(e instanceof Error ? e.message : "푸시 등록 실패");
     }
   }
+  async function testPush() {
+    if (offline) {
+      setError("로컬 시연 모드에서는 실제 푸시 알림을 보낼 수 없습니다.");
+      return;
+    }
+    setError("");
+    setNotice("");
+    setBusy(true);
+    try {
+      const result = await api<{
+        sent_attempted: boolean;
+        delivery_guaranteed: boolean;
+      }>("/api/push/test", { method: "POST" });
+      setNotice(
+        result.sent_attempted
+          ? "서버에서 테스트 알림 발송을 시도했습니다. 실제 기기에 도착하는지 확인해 주세요."
+          : "서버에서 푸시 발송을 시도하지 않았습니다. 알림 구독과 VAPID 설정을 확인해 주세요.",
+      );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "푸시 테스트 실패");
+    } finally {
+      setBusy(false);
+    }
+  }
   async function create(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
     setError("");
     setNotice("");
     try {
-      await api("/api/bookings/demo", {
-        method: "POST",
-        body: JSON.stringify({
-          restaurant,
-          party_size: party,
-          visit_at: new Date(visit).toISOString(),
-        }),
-      });
+      if (offline)
+        createOfflineBooking(restaurant, new Date(visit).toISOString(), party);
+      else
+        await api("/api/bookings/demo", {
+          method: "POST",
+          body: JSON.stringify({
+            restaurant,
+            party_size: party,
+            visit_at: new Date(visit).toISOString(),
+          }),
+        });
       await refresh();
+      window.dispatchEvent(new Event("dinovo:bookings-changed"));
       setNotice(
         "모의 예약 승인 요청을 생성했습니다. 실제 식당에 예약되지 않았습니다.",
       );
@@ -112,12 +187,48 @@ export default function BookingsView({ goAccount }: { goAccount: () => void }) {
     setBusy(true);
     setError("");
     try {
-      await api(`/api/bookings/demo/${id}/decision?decision=${decision}`, {
-        method: "POST",
-      });
+      if (offline) decideOfflineBooking(id, decision);
+      else
+        await api(
+          `/api/bookings/demo/${id}/decision?decision=${decision}&auto_execute=${decision === "approve"}`,
+          { method: "POST" },
+        );
       await refresh();
+      window.dispatchEvent(new Event("dinovo:bookings-changed"));
     } catch (e) {
       setError(e instanceof Error ? e.message : "처리 실패");
+      await refresh();
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function executeDemo(id: string) {
+    setBusy(true);
+    setError("");
+    setNotice("");
+    try {
+      const result = await api<{
+        booking_id: string;
+        status: string;
+        confirmation_code: string;
+        demo_only: boolean;
+        real_booking_created: boolean;
+      }>(`/api/booking-agent/demo/${encodeURIComponent(id)}/execute`, {
+        method: "POST",
+      });
+      if (!result.demo_only || result.real_booking_created)
+        throw new Error("모의 실행 응답이 올바르지 않습니다.");
+      setConfirmationCodes((prev) => ({
+        ...prev,
+        [id]: result.confirmation_code,
+      }));
+      setNotice(
+        `가상 예약 실행이 완료됐습니다. 테스트 번호: ${result.confirmation_code} (실예약 아님)`,
+      );
+      await refresh();
+      window.dispatchEvent(new Event("dinovo:bookings-changed"));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "모의 실행 실패");
       await refresh();
     } finally {
       setBusy(false);
@@ -129,10 +240,41 @@ export default function BookingsView({ goAccount }: { goAccount: () => void }) {
         <p className="account-eyebrow">DINOVO BOOKING AGENT</p>
         <h1>AI 예약 · 승인</h1>
         <p>
-          예약 Agent 승인 절차를 테스트합니다. 실제 예약 및 결제는 발생하지
+          예약 Agent 승인·모의 실행을 테스트합니다. 실제 예약 및 결제는 발생하지
           않습니다.
         </p>
       </header>
+      <div className="account-panel d-offline-panel">
+        <label className="d-offline-toggle">
+          <input
+            type="checkbox"
+            checked={offline}
+            onChange={(e) => setOfflineDemoEnabled(e.target.checked)}
+          />{" "}
+          로컬 시연 모드 (Render 연결 없이 테스트)
+        </label>
+        <p className="account-note">
+          이 모드의 예약은 현재 브라우저에만 저장됩니다. 실제 예약·결제·푸시
+          알림은 실행되지 않으며, 서버 예약과 별개입니다.
+        </p>
+        {offline && (
+          <button
+            type="button"
+            onClick={() => {
+              if (
+                window.confirm(
+                  "이 브라우저에 저장된 시연 예약을 모두 삭제할까요?",
+                )
+              ) {
+                clearOfflineBookings();
+                setNotice("로컬 시연 데이터를 삭제했습니다.");
+              }
+            }}
+          >
+            로컬 시연 데이터 삭제
+          </button>
+        )}
+      </div>
       {!signed ? (
         <div className="account-panel">
           <p>예약 작업은 로그인 계정별로 관리합니다.</p>
@@ -140,18 +282,33 @@ export default function BookingsView({ goAccount }: { goAccount: () => void }) {
         </div>
       ) : (
         <>
+          {!offline && (
+            <div className="account-panel">
+              <h2>알림 설정</h2>
+              <p className="account-note">
+                HTTPS 환경에서 기기별 Web Push를 활성화할 수 있습니다. iPhone은
+                홈 화면에 설치한 PWA에서 사용하세요.
+              </p>
+              <div className="booking-buttons">
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => void enablePush()}
+                >
+                  이 기기에 예약 푸시 알림 등록
+                </button>
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => void testPush()}
+                >
+                  테스트 알림 보내기
+                </button>
+              </div>
+            </div>
+          )}
           <div className="account-panel">
-            <h2>알림 설정</h2>
-            <p className="account-note">
-              HTTPS 환경에서 기기별 Web Push를 활성화할 수 있습니다. iPhone은 홈
-              화면에 설치한 PWA에서 사용하세요.
-            </p>
-            <button onClick={() => void enablePush()}>
-              이 기기에 예약 푸시 알림 등록
-            </button>
-          </div>
-          <div className="account-panel">
-            <h2>모의 예약 요청</h2>
+            <h2>{offline ? "로컬 모의 예약 요청" : "모의 예약 요청"}</h2>
             <form onSubmit={(e) => void create(e)}>
               <label>
                 레스토랑 이름
@@ -183,15 +340,44 @@ export default function BookingsView({ goAccount }: { goAccount: () => void }) {
                 />
               </label>
               <button disabled={busy || !visit}>
-                모의 예약 승인 요청 만들기
+                모의 예약 승인 요청 만들기 (수동 입력)
               </button>
             </form>
           </div>
           <div className="account-panel">
-            <h2>내 예약 승인 내역</h2>
-            <div className="d-booking-filters" role="group" aria-label="예약 상태별 보기">{([["all","전체"],["pending","승인 대기"],["completed","처리 내역"]] as const).map(([key,label])=><button key={key} type="button" aria-pressed={listFilter === key} onClick={()=>setListFilter(key)}>{label}{key==="pending" && items.some(item=>item.status==="approval_pending") ? ` (${items.filter(item=>item.status==="approval_pending").length})` : ""}</button>)}</div>
+            <h2>{offline ? "이 브라우저의 시연 예약" : "내 예약 승인 내역"}</h2>
+            <div
+              className="d-booking-filters"
+              role="group"
+              aria-label="예약 상태별 보기"
+            >
+              {(
+                [
+                  ["all", "전체"],
+                  ["pending", "승인 대기"],
+                  ["completed", "처리 내역"],
+                ] as const
+              ).map(([key, label]) => (
+                <button
+                  key={key}
+                  type="button"
+                  aria-pressed={listFilter === key}
+                  onClick={() => setListFilter(key)}
+                >
+                  {label}
+                  {key === "pending" &&
+                  items.some((item) => item.status === "approval_pending")
+                    ? ` (${items.filter((item) => item.status === "approval_pending").length})`
+                    : ""}
+                </button>
+              ))}
+            </div>
             {filteredItems.length === 0 ? (
-              <p>{listFilter === "pending" ? "승인을 기다리는 요청이 없습니다." : "표시할 예약 요청이 없습니다."}</p>
+              <p>
+                {listFilter === "pending"
+                  ? "승인을 기다리는 요청이 없습니다."
+                  : "표시할 예약 요청이 없습니다."}
+              </p>
             ) : (
               filteredItems.map((item) => (
                 <div key={item.id} className="booking-entry">
@@ -201,13 +387,35 @@ export default function BookingsView({ goAccount }: { goAccount: () => void }) {
                     {new Date(item.visit_at).toLocaleString("ko-KR")} ·{" "}
                     {item.party_size}명
                   </span>
+                  {item.status === "demo_confirmed" && (
+                    <small>
+                      실제 식당 예약은 생성되지 않았습니다.{" "}
+                      {confirmationCodes[item.id] || item.confirmation_code
+                        ? `테스트 번호: ${confirmationCodes[item.id] || item.confirmation_code}`
+                        : ""}
+                    </small>
+                  )}
+                  {!offline && item.status === "demo_approved" && (
+                    <div className="booking-buttons">
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => void executeDemo(item.id)}
+                      >
+                        승인된 요청 모의 실행
+                      </button>
+                      <span className="account-note">
+                        가상 제공자에서만 실행 · 결제 없음
+                      </span>
+                    </div>
+                  )}
                   {item.status === "approval_pending" && (
                     <div className="booking-buttons">
                       <button
                         disabled={busy}
                         onClick={() => void decide(item.id, "approve")}
                       >
-                        모의 승인
+                        {offline ? "로컬 모의 승인" : "모의 승인"}
                       </button>
                       <button
                         disabled={busy}

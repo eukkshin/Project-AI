@@ -24,7 +24,8 @@ import PaymentsView from "@/components/views/PaymentsView";
 import { useAppDispatch, useAppSelector } from "@/hooks/redux";
 import { useChatController } from "@/hooks/useChatController";
 import { BookingDraft, parseBookingIntent } from "@/lib/bookingIntent";
-import { setDistrict, setInputText, setMobileView } from "@/store/chatSlice";
+import { offlineDemoEnabled } from "@/lib/offlineDemo";
+import { setInputText, setMobileView } from "@/store/chatSlice";
 
 // Cafe24 static hosting: Next.js basePath is compiled into the build.
 const BASE_PATH = "/group/three/3";
@@ -68,14 +69,8 @@ export default function AppShell() {
   const [profilePanel, setProfilePanel] = useState<ProfilePanel | null>(null);
   const [bookingDraft, setBookingDraft] = useState<BookingDraft | null>(null);
 
-  const {
-    sessions,
-    activeSessionId,
-    selectedDistrict,
-    favorites,
-    mobileView,
-    hydrated,
-  } = useAppSelector((state) => state.chat);
+  const { sessions, activeSessionId, favorites, mobileView, hydrated } =
+    useAppSelector((state) => state.chat);
   const { activeSession, startNew, openSession, send, retryLast, cancel } =
     useChatController();
 
@@ -116,7 +111,8 @@ export default function AppShell() {
   function sendFromConcierge(query: string) {
     const draft = parseBookingIntent(query);
     if (draft) setBookingDraft(draft);
-    void send(query);
+    // In explicit local demo mode, booking phrases open the booking card without calling Render.
+    if (!(draft && offlineDemoEnabled())) void send(query);
   }
 
   function prompt(text: string) {
@@ -162,8 +158,6 @@ export default function AppShell() {
   return (
     <div className="app-shell d-shell">
       <Topbar
-        district={selectedDistrict}
-        onDistrict={(district) => dispatch(setDistrict(district))}
         view={view}
         onNavigate={navigate}
         onSettings={() => setSettingsOpen(true)}

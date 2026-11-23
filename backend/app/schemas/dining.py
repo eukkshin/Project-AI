@@ -1,6 +1,6 @@
 """Shared, strictly validated API contracts."""
 from typing import Literal
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 District = Literal["노원구", "도봉구", "강북구", "중랑구", "성북구", "강남구", "마포구", "성동구", "송파구", "종로구", "중구", "용산구", "영등포구", "서초구", "광진구", "관악구", "동작구", "강서구", "양천구", "은평구", "서대문구", "구로구", "금천구", "동대문구", "강동구"]
 Category = Literal["all", "restaurant", "cafe"]
@@ -12,7 +12,7 @@ class HistoryItem(BaseModel):
 class ChatRequest(BaseModel):
     message: str | None = None
     messages: str | None = None  # legacy frontend API compatibility
-    district: str = Field(default="노원구", max_length=30)
+    district: str = Field(default="", max_length=30)
     history: list[HistoryItem] = Field(default_factory=list, max_length=20)
 
     @model_validator(mode="after")
@@ -55,6 +55,14 @@ class ChatResponse(BaseModel):
     suggested_questions: list[str] = Field(default_factory=list)
 
 class Intent(BaseModel):
+    @field_validator("category", mode="before")
+    @classmethod
+    def normalize_category(cls, value):
+        # AI may return an empty category for general conversation or searches.
+        if value is None or (isinstance(value, str) and not value.strip()):
+            return "all"
+        return value.strip().lower() if isinstance(value, str) else value
+
     needs_search: bool = False
     query: str = Field(default="", max_length=80)
     category: Category = "all"

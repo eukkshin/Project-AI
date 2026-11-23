@@ -9,6 +9,7 @@ export type Booking = {
   party_size: number;
   status: string;
   expires_at: string;
+  confirmation_code?: string | null;
 };
 export function token() {
   return typeof window === "undefined"

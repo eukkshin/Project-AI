@@ -6,6 +6,7 @@ const nextConfig: NextConfig = {
   trailingSlash: true,
   basePath: "/group/three/3",
   images: { unoptimized: true },
+  turbopack: { root: process.cwd() },
 };
 
 export default nextConfig;

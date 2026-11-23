@@ -167,6 +167,40 @@ const slice = createSlice({
       if (i === -1) state.favorites.unshift({ name, createdAt: Date.now() });
       else state.favorites.splice(i, 1);
     },
+    importWorkspace(
+      state,
+      action: PayloadAction<{
+        favorites: SavedRestaurant[];
+        conversations: {
+          id: string;
+          title: string;
+          updatedAt: number;
+          messages: ChatMessage[];
+        }[];
+        save_history: boolean;
+      }>,
+    ) {
+      const remote = action.payload;
+      state.favorites = remote.favorites
+        .slice(0, 100)
+        .map((f) => ({ name: f.name.slice(0, 90), createdAt: f.createdAt }));
+      state.sessions =
+        remote.save_history && remote.conversations.length
+          ? remote.conversations
+              .slice(0, 30)
+              .map((c) => ({
+                id: c.id,
+                title: c.title,
+                messages: c.messages.slice(-80),
+                places: [],
+                showMap: false,
+                suggestedQuestions: [],
+                updatedAt: c.updatedAt,
+              }))
+          : [createSession()];
+      state.activeSessionId = state.sessions[0].id;
+      state.saveHistory = remote.save_history;
+    },
     setSaveHistory(state, action: PayloadAction<boolean>) {
       state.saveHistory = action.payload;
     },
@@ -195,6 +229,7 @@ export const {
   choosePlace,
   setMobileView,
   toggleFavorite,
+  importWorkspace,
   setSaveHistory,
   clearAllHistory,
 } = slice.actions;

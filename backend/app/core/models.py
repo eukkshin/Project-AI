@@ -48,3 +48,40 @@ class PushSubscription(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey('users.id'), index=True)
     endpoint: Mapped[str] = mapped_column(Text, unique=True)
     subscription_json: Mapped[str] = mapped_column(Text)
+
+class BookingDemoExecution(Base):
+    __tablename__ = 'booking_demo_executions'
+    booking_id: Mapped[str] = mapped_column(ForeignKey('booking_jobs.id'), primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey('users.id'), index=True)
+    confirmation_code: Mapped[str] = mapped_column(String(64), unique=True)
+    completed_at: Mapped[str] = mapped_column(String(64))
+
+class UserWorkspace(Base):
+    """Single account-owned validated snapshot of dining journal/favorites and opted-in chats."""
+    __tablename__ = 'user_workspaces'
+    user_id: Mapped[int] = mapped_column(ForeignKey('users.id'), primary_key=True)
+    data_json: Mapped[str] = mapped_column(Text, default='{}')
+    updated_at: Mapped[str] = mapped_column(String(64))
+
+class NotificationEvent(Base):
+    __tablename__ = 'notification_events'
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey('users.id'), index=True)
+    booking_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    kind: Mapped[str] = mapped_column(String(40))
+    title: Mapped[str] = mapped_column(String(200))
+    body: Mapped[str] = mapped_column(String(400))
+    created_at: Mapped[str] = mapped_column(String(64))
+    read_at: Mapped[str | None] = mapped_column(String(64), nullable=True)
+
+class OAuthFlow(Base):
+    __tablename__ = 'oauth_flows'
+    state_hash: Mapped[str] = mapped_column(String(64), primary_key=True)
+    provider: Mapped[str] = mapped_column(String(20))
+    expires_at: Mapped[str] = mapped_column(String(64))
+
+class OAuthTicket(Base):
+    __tablename__ = 'oauth_tickets'
+    ticket_hash: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey('users.id'))
+    expires_at: Mapped[str] = mapped_column(String(64))

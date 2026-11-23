@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 
+import WorkspaceSync from "@/components/layout/WorkspaceSync";
 import { api, token, User } from "@/lib/accountApi";
 
 export type ProfilePanel = "account" | "terms" | "privacy" | "bug";
@@ -97,9 +98,10 @@ export default function ProfileDialog({ panel, onClose, onLogin }: Props) {
                   <strong>이메일</strong>
                   <span>{user.email}</span>
                 </p>
+                <WorkspaceSync />
                 <p className="d-profile-disclaimer">
-                  현재 계정 정보는 조회만 지원합니다. 정보 수정 및 계정 삭제는
-                  추후 API 연동이 필요합니다.
+                  계정 정보 수정과 삭제는 아직 지원하지 않습니다. 운영 전 별도
+                  구현이 필요합니다.
                 </p>
               </>
             ) : (

@@ -63,14 +63,8 @@ export default function ChatPanel({
   onManageBookings,
 }: Props) {
   const dispatch = useAppDispatch();
-  const {
-    inputText,
-    isLoading,
-    error,
-    selectedDistrict,
-    favorites,
-    selectedPlaceKey,
-  } = useAppSelector((state) => state.chat);
+  const { inputText, isLoading, error, favorites, selectedPlaceKey } =
+    useAppSelector((state) => state.chat);
   const messagesEnd = useRef<HTMLDivElement>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   async function copyText(id: string, value: string) {
@@ -97,7 +91,7 @@ export default function ChatPanel({
             <span className="eyebrow">PERSONAL DINING CONCIERGE</span>
             <h1>오늘은 무엇을 맛볼까요?</h1>
             <p>
-              <strong>{selectedDistrict}</strong>에서 만나는 식당과 카페.
+              원하는 지역과 음식을 말씀해 주세요.
               <br className="desktop-break" /> 취향에 맞는 미식 경험을
               찾아드려요.
             </p>
@@ -117,11 +111,17 @@ export default function ChatPanel({
             </div>
             <div className="welcome-card">
               <MapPin size={16} />
-              <span>
-                현재 탐색 지역 <strong>{selectedDistrict}</strong>
-              </span>
-              <span className="welcome-card-note">상단에서 변경 가능</span>
+              <span>예: 강남에서 내일 저녁 7시, 2명 예약해 줘</span>
             </div>
+          </div>
+        )}
+        {bookingDraft && !hasMessages && (
+          <div className="conversation">
+            <BookingAgentCard
+              draft={bookingDraft}
+              onLogin={onLogin}
+              onManage={onManageBookings}
+            />
           </div>
         )}
         {hasMessages && (
@@ -284,7 +284,6 @@ export default function ChatPanel({
       </div>
       <ChatComposer
         value={inputText}
-        district={selectedDistrict}
         disabled={isLoading}
         onChange={(value) => dispatch(setInputText(value))}
         onSend={() => send(inputText)}

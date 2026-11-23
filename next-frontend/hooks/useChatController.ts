@@ -2,7 +2,8 @@
 import { useCallback, useEffect, useRef } from "react";
 
 import { useAppDispatch, useAppSelector } from "@/hooks/redux";
-import { postChat } from "@/lib/api";
+import { postAgentTurn, postChat } from "@/lib/api";
+import { parseBookingIntent } from "@/lib/bookingIntent";
 import { createId } from "@/lib/createId";
 import {
   addMessage,
@@ -16,8 +17,9 @@ import {
 
 export function useChatController() {
   const dispatch = useAppDispatch();
-  const { sessions, activeSessionId, selectedDistrict, isLoading, inputText } =
-    useAppSelector((state) => state.chat);
+  const { sessions, activeSessionId, isLoading, inputText } = useAppSelector(
+    (state) => state.chat,
+  );
   const activeSession = sessions.find((s) => s.id === activeSessionId);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -65,12 +67,10 @@ export function useChatController() {
       abortRef.current = controller;
       const timeout = window.setTimeout(() => controller.abort(), 35000);
       try {
-        const response = await postChat(
-          query,
-          selectedDistrict,
-          history,
-          controller.signal,
-        );
+        const booking = parseBookingIntent(query);
+        const response = booking
+          ? await postAgentTurn(query, "", history, booking, controller.signal)
+          : await postChat(query, "", history, controller.signal);
         if (abortRef.current !== controller || controller.signal.aborted)
           return;
         dispatch(applyResponse({ sessionId: activeSessionId, response }));
@@ -99,14 +99,7 @@ export function useChatController() {
         }
       }
     },
-    [
-      activeSession,
-      activeSessionId,
-      cancel,
-      dispatch,
-      isLoading,
-      selectedDistrict,
-    ],
+    [activeSession, activeSessionId, cancel, dispatch, isLoading],
   );
 
   const sendCurrent = useCallback(

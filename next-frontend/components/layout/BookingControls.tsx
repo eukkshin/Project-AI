@@ -4,6 +4,7 @@ import { Bell, CalendarClock, CheckCircle2, Clock3, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { api, Booking, token } from "@/lib/accountApi";
+import { listOfflineBookings, offlineDemoEnabled } from "@/lib/offlineDemo";
 
 import type { View } from "@/components/layout/Topbar";
 
@@ -13,6 +14,7 @@ const ACTIVE = new Set([
   "executing",
   "requested",
   "approved",
+  "demo_approved",
 ]);
 const PENDING = "approval_pending";
 const statusText: Record<string, string> = {
@@ -21,7 +23,8 @@ const statusText: Record<string, string> = {
   executing: "예약 처리 중",
   requested: "예약 접수",
   approved: "승인 완료",
-  demo_approved: "모의 승인 완료",
+  demo_approved: "모의 승인 · 실행 대기",
+  demo_confirmed: "가상 예약 완료 (실예약 아님)",
   rejected: "거절됨",
   expired: "승인 만료",
   confirmed: "예약 확정",
@@ -33,11 +36,20 @@ type Props = { onNavigate: (view: View) => void; onSettings: () => void };
 export default function BookingControls({ onNavigate }: Props) {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [signedIn, setSignedIn] = useState(false);
+  const [offline, setOffline] = useState(false);
   const [panel, setPanel] = useState<"notifications" | null>(null);
   const [error, setError] = useState("");
   const holder = useRef<HTMLDivElement>(null);
 
   const refresh = useCallback(async () => {
+    const local = offlineDemoEnabled();
+    setOffline(local);
+    if (local) {
+      setSignedIn(true);
+      setBookings(listOfflineBookings());
+      setError("");
+      return;
+    }
     const hasToken = Boolean(token());
     setSignedIn(hasToken);
     if (!hasToken) {
@@ -67,12 +79,14 @@ export default function BookingControls({ onNavigate }: Props) {
     window.addEventListener("focus", onFocus);
     window.addEventListener("dinovo:auth-changed", onDataChange);
     window.addEventListener("dinovo:bookings-changed", onDataChange);
+    window.addEventListener("dinovo:offline-demo-changed", onDataChange);
     document.addEventListener("visibilitychange", onFocus);
     return () => {
       window.clearInterval(timer);
       window.removeEventListener("focus", onFocus);
       window.removeEventListener("dinovo:auth-changed", onDataChange);
       window.removeEventListener("dinovo:bookings-changed", onDataChange);
+      window.removeEventListener("dinovo:offline-demo-changed", onDataChange);
       document.removeEventListener("visibilitychange", onFocus);
     };
   }, [refresh]);
@@ -144,7 +158,7 @@ export default function BookingControls({ onNavigate }: Props) {
           aria-label="예약 알림 센터"
         >
           <div className="booking-popover-head">
-            <strong>예약 알림</strong>
+            <strong>{offline ? "로컬 시연 예약 상태" : "예약 알림"}</strong>
             <button
               className="booking-popover-close"
               type="button"
@@ -215,7 +229,9 @@ export default function BookingControls({ onNavigate }: Props) {
             내 예약 전체 보기
           </button>
           <p className="booking-popover-disclaimer">
-            현재 예약은 시뮬레이션이며 실제 식당 예약은 발생하지 않습니다.
+            {offline
+              ? "브라우저 저장 데이터입니다. 실제 푸시·식당 예약·결제는 발생하지 않습니다."
+              : "현재 예약은 시뮬레이션이며 실제 식당 예약은 발생하지 않습니다."}
           </p>
         </div>
       )}

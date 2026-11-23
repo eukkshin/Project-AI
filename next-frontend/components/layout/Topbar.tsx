@@ -1,8 +1,7 @@
 "use client";
-import { MapPin, Menu } from "lucide-react";
+import { Menu } from "lucide-react";
 
 import BookingControls from "@/components/layout/BookingControls";
-import { DISTRICTS } from "@/lib/types";
 
 export type View =
   | "home"
@@ -16,21 +15,13 @@ export type View =
   | "account"
   | "bookings";
 type Props = {
-  district: string;
-  onDistrict: (district: string) => void;
   view: View;
   onNavigate: (v: View) => void;
   onSettings: () => void;
   onMenu: () => void;
   onLogin: () => void;
 };
-export default function Topbar({
-  district,
-  onDistrict,
-  onNavigate,
-  onSettings,
-  onMenu,
-}: Props) {
+export default function Topbar({ onNavigate, onSettings, onMenu }: Props) {
   return (
     <header className="d-topbar">
       <div className="d-topbar-start">
@@ -51,15 +42,6 @@ export default function Topbar({
         </button>
       </div>
       <div className="d-topbar-actions">
-        <label className="d-district">
-          <MapPin size={15} />
-          <span className="sr-only">검색 지역</span>
-          <select value={district} onChange={(e) => onDistrict(e.target.value)}>
-            {DISTRICTS.map((d) => (
-              <option key={d}>{d}</option>
-            ))}
-          </select>
-        </label>
         <BookingControls onNavigate={onNavigate} onSettings={onSettings} />
       </div>
     </header>

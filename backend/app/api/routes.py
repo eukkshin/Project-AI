@@ -19,7 +19,7 @@ async def health():
 @router.get("/restaurants/search", response_model=RestaurantResult)
 async def restaurant_search(
     query: str = Query(min_length=1, max_length=80),
-    district: str = Query(default="노원구", max_length=30),
+    district: str = Query(default="", max_length=30),
     category: Category = "all",
     lat: float | None = Query(default=None, ge=-90, le=90),
     lng: float | None = Query(default=None, ge=-180, le=180),
@@ -53,7 +53,7 @@ async def chat(request: ChatRequest):
     places = enrich_verified_links(await search_dining_places(query, district, intent.category, question=request.question, limit=8))
     if not places:
         return ChatResponse(
-            reply=f"{district}에서 해당 조건의 식당을 찾지 못했습니다. 음식 종류나 지역을 바꿔 다시 검색해 보세요.",
+            reply=f"{district + '에서 ' if district else ''}조건에 맞는 식당을 찾지 못했습니다. 검색어 또는 지역을 바꿔 다시 시도해 주세요.",
             suggested_questions=["다른 종류의 식당 찾아줘", "지역을 넓혀서 검색해줘"],
         )
     reply = await describe_results(request, places)

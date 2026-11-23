@@ -67,6 +67,5 @@ def logout(credentials: HTTPAuthorizationCredentials | None = Depends(bearer), u
 
 @router.get('/providers')
 def providers():
-    # Provider logins require a complete authorization-code/PKCE and callback flow.
-    # Client IDs are not proof of a working OAuth integration.
-    return {'providers': [{'id': p, 'enabled': False, 'status': 'planned'} for p in ('kakao','naver','google','apple')]}
+    from app.api.oauth_routes import provider_enabled
+    return {'providers': [{'id': p, 'enabled': provider_enabled(p), 'status': 'available' if provider_enabled(p) else 'setup_required'} for p in ('kakao','naver','google')] + [{'id':'apple','enabled':False,'status':'deferred'}]}
